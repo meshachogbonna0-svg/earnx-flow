@@ -1,0 +1,348 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * EarnX-Finance design system.
+ * Luxury fintech: deep navy, black, royal purple, gold, emerald.
+ * All colors are oklch semantic tokens. Never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-soft: var(--gold-soft);
+  --color-royal: var(--royal);
+  --color-royal-foreground: var(--royal-foreground);
+  --color-navy: var(--navy);
+  --color-navy-deep: var(--navy-deep);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float 10s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-pulse-glow: pulse-glow 2.4s ease-in-out infinite;
+  --animate-rise: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-scale-in: scale-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-marquee: marquee 32s linear infinite;
+}
+
+:root {
+  --radius: 1rem;
+
+  /* Dark luxury is the ONLY theme for this fintech product. */
+  --background: oklch(0.16 0.035 275);
+  --foreground: oklch(0.97 0.005 260);
+
+  --navy: oklch(0.22 0.055 272);
+  --navy-deep: oklch(0.12 0.03 275);
+
+  --card: oklch(0.21 0.045 274);
+  --card-foreground: oklch(0.97 0.005 260);
+  --popover: oklch(0.19 0.04 274);
+  --popover-foreground: oklch(0.97 0.005 260);
+
+  --primary: oklch(0.55 0.19 295);
+  --primary-foreground: oklch(0.98 0.005 280);
+
+  --royal: oklch(0.48 0.2 297);
+  --royal-foreground: oklch(0.98 0.005 280);
+
+  --gold: oklch(0.82 0.15 88);
+  --gold-foreground: oklch(0.18 0.03 275);
+  --gold-soft: oklch(0.9 0.09 92);
+
+  --secondary: oklch(0.27 0.05 274);
+  --secondary-foreground: oklch(0.96 0.005 260);
+
+  --muted: oklch(0.25 0.04 274);
+  --muted-foreground: oklch(0.72 0.02 268);
+
+  --accent: oklch(0.3 0.07 290);
+  --accent-foreground: oklch(0.97 0.005 260);
+
+  --success: oklch(0.72 0.17 158);
+  --success-foreground: oklch(0.15 0.03 275);
+
+  --destructive: oklch(0.62 0.21 22);
+  --destructive-foreground: oklch(0.98 0.005 260);
+
+  --border: oklch(0.98 0.01 280 / 12%);
+  --input: oklch(0.98 0.01 280 / 16%);
+  --ring: oklch(0.82 0.15 88 / 60%);
+
+  --chart-1: oklch(0.82 0.15 88);
+  --chart-2: oklch(0.55 0.19 295);
+  --chart-3: oklch(0.72 0.17 158);
+  --chart-4: oklch(0.65 0.15 250);
+  --chart-5: oklch(0.7 0.16 20);
+
+  --sidebar: oklch(0.18 0.04 275);
+  --sidebar-foreground: oklch(0.96 0.005 260);
+  --sidebar-primary: oklch(0.82 0.15 88);
+  --sidebar-primary-foreground: oklch(0.18 0.03 275);
+  --sidebar-accent: oklch(0.26 0.05 280);
+  --sidebar-accent-foreground: oklch(0.96 0.005 260);
+  --sidebar-border: oklch(0.98 0.01 280 / 10%);
+  --sidebar-ring: oklch(0.82 0.15 88 / 50%);
+
+  /* Gradients */
+  --gradient-gold: linear-gradient(
+    135deg,
+    oklch(0.9 0.09 96),
+    oklch(0.82 0.15 88) 45%,
+    oklch(0.68 0.13 70)
+  );
+  --gradient-royal: linear-gradient(135deg, oklch(0.48 0.2 297), oklch(0.32 0.13 285));
+  --gradient-surface: linear-gradient(
+    160deg,
+    oklch(0.24 0.05 278) 0%,
+    oklch(0.17 0.035 275) 100%
+  );
+  --gradient-hero: radial-gradient(
+      120% 90% at 15% 0%,
+      oklch(0.42 0.17 296 / 55%) 0%,
+      transparent 60%
+    ),
+    radial-gradient(90% 80% at 95% 10%, oklch(0.62 0.13 88 / 26%) 0%, transparent 55%),
+    radial-gradient(100% 100% at 50% 100%, oklch(0.3 0.12 170 / 22%) 0%, transparent 60%);
+
+  /* Shadows */
+  --shadow-soft: 0 2px 8px oklch(0.08 0.02 275 / 40%);
+  --shadow-card: 0 18px 45px -20px oklch(0.06 0.02 275 / 85%);
+  --shadow-gold: 0 12px 40px -12px oklch(0.82 0.15 88 / 45%);
+  --shadow-royal: 0 16px 44px -16px oklch(0.48 0.2 297 / 60%);
+
+  --transition-smooth: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.82 0.15 88 / 45%);
+  }
+  50% {
+    box-shadow: 0 0 0 18px oklch(0.82 0.15 88 / 0%);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility glass {
+  background: oklch(0.98 0.01 280 / 6%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid oklch(0.98 0.01 280 / 12%);
+}
+
+@utility glass-strong {
+  background: oklch(0.22 0.05 276 / 78%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid oklch(0.98 0.01 280 / 14%);
+}
+
+@utility surface-card {
+  background-image: var(--gradient-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+@utility text-gold-gradient {
+  background-image: var(--gradient-gold);
+  background-clip: text;
+  color: transparent;
+}
+
+@utility bg-gold-gradient {
+  background-image: var(--gradient-gold);
+}
+
+@utility bg-royal-gradient {
+  background-image: var(--gradient-royal);
+}
+
+@utility bg-hero-glow {
+  background-image: var(--gradient-hero);
+}
+
+@utility shadow-gold-glow {
+  box-shadow: var(--shadow-gold);
+}
+
+@utility reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@utility reveal-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    font-feature-settings: "ss01", "cv01";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: oklch(0.82 0.15 88 / 30%);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.98 0.01 280 / 14%);
+    border-radius: 999px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
