@@ -151,6 +151,7 @@ function WithdrawPage() {
   }, []);
 
   const submit = async () => {
+    if (busy) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("request_withdrawal", {
       _amount: Number(amount),

@@ -130,6 +130,7 @@ function UpgradeLevelPage() {
   }, [navigate, target]);
 
   const upgrade = async () => {
+    if (busy) return;
     setBusy(true);
     const call = supabase.rpc.bind(supabase) as unknown as (
       name: string,
@@ -141,20 +142,22 @@ function UpgradeLevelPage() {
       _reference: reference,
       _proof_url: proofUrl,
     });
-    setBusy(false);
     const res = (data ?? {}) as UpgradeResult;
-    if (error)
+    if (error) {
+      setBusy(false);
       return toast.error("Upgrade request failed", {
         description: "Please check your connection and try again.",
       });
+    }
     if (!res.ok) {
+      setBusy(false);
       if (res.reason === "pending_exists") setPending(true);
       return toast.error(messageFor(res));
     }
 
     setPending(true);
     toast.success("Upgrade request submitted", { description: "Your receipt is now under Admin review." });
-    navigate({ to: "/requests", replace: true });
+    navigate({ to: "/upgrade-processing", search: { level: String(target) }, replace: true });
   };
 
 

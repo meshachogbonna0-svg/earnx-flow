@@ -93,22 +93,27 @@ function ActivatePage() {
   }, [navigate]);
 
   const submit = async () => {
+    if (busy) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("submit_activation", {
       _payer_name: payerName,
       _reference: reference,
       _proof_url: proofUrl,
     });
-    setBusy(false);
     const res = (data ?? {}) as { ok?: boolean; reason?: string; auto?: boolean };
-    if (error)
+    if (error) {
+      setBusy(false);
       return toast.error("We couldn't submit your payment", {
         description: "Please check your connection and try again.",
       });
-    if (!res.ok) return toast.error(reasons[res.reason ?? ""] ?? "Could not submit your request.");
+    }
+    if (!res.ok) {
+      setBusy(false);
+      return toast.error(reasons[res.reason ?? ""] ?? "Could not submit your request.");
+    }
     setStatus("pending");
     toast.success("Activation request submitted", { description: "Your receipt is now under Admin review." });
-    navigate({ to: "/requests", replace: true });
+    navigate({ to: "/activation-processing", replace: true });
   };
 
   if (loading) return <PageLoader />;
