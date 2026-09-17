@@ -48,6 +48,7 @@ type Withdrawal = {
 type WithdrawResult = {
   ok?: boolean;
   reason?: string;
+  id?: string;
   reference?: string;
   min?: number;
   max?: number;
@@ -151,6 +152,7 @@ function WithdrawPage() {
   }, []);
 
   const submit = async () => {
+    if (busy) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("request_withdrawal", {
       _amount: Number(amount),
@@ -158,19 +160,22 @@ function WithdrawPage() {
       _account_number: accountNumber,
       _account_name: accountName,
     });
-    setBusy(false);
     const res = (data ?? {}) as WithdrawResult;
-    if (error)
+    if (error) {
+      setBusy(false);
       return toast.error("Withdrawal failed", { description: "Please check your connection and try again." });
-    if (!res.ok) return toast.error(messageFor(res));
+    }
+    if (!res.ok) {
+      setBusy(false);
+      return toast.error(messageFor(res));
+    }
     toast.success("Withdrawal request submitted", {
       description: "Your request is now being processed by Admin.",
     });
-    setAmount("");
     const submitted: Withdrawal = { id: String(res.id ?? ""), reference: String(res.reference ?? ""), amount: Number(amount), status: "processing", bank_name: bankName, created_at: new Date().toISOString() };
+    setAmount("");
     setLastSubmitted(submitted);
-    void load();
-
+    navigate({ to: "/withdrawal-processing", replace: true });
   };
 
   if (loading) return <PageLoader />;

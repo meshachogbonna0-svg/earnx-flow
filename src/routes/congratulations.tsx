@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { CheckCircle2, Sparkles } from "lucide-react";
-import { type CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { AppPage } from "@/components/dashboard/app-page";
 import { naira } from "@/lib/format";
 
@@ -17,6 +17,10 @@ function CongratulationsPage() {
   const navigate = useNavigate();
   const { amount, kind } = useSearch({ from: "/congratulations" });
   const pieces = Array.from({ length: 64 }, (_, i) => i);
+  useEffect(() => {
+    const t = window.setTimeout(() => navigate({ to: "/dashboard", replace: true }), 3400);
+    return () => window.clearTimeout(t);
+  }, [navigate]);
   const value = Number(amount) || 0;
   const title = kind === "questionnaire" ? "Congratulations!" : "Success!";
   const subtitle = kind === "questionnaire"
@@ -45,6 +49,7 @@ function CongratulationsPage() {
             </div>
           )}
           <button type="button" onClick={() => navigate({ to: "/dashboard", replace: true })} className="mt-8 w-full rounded-xl bg-gold-gradient py-3.5 text-xs font-bold text-gold-foreground">Continue to Dashboard</button>
+          <p className="mt-3 text-[10px] text-muted-foreground">Taking you to your dashboard…</p>
         </div>
       </section>
     </AppPage>

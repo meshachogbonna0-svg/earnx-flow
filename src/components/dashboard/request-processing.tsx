@@ -44,7 +44,7 @@ export function RequestProcessingCard({
   useEffect(() => {
     let active = true;
     void supabase.from("platform_settings").select("activation_processing_message,activation_success_message,activation_rejection_message,upgrade_processing_message,upgrade_success_message,upgrade_rejection_message,withdrawal_processing_message,withdrawal_success_message,withdrawal_rejection_message").maybeSingle()
-      .then(({ data }) => { if (active && data) setPlatformMessages(data as Record<string, string>); });
+      .then(({ data }) => { if (active && data) setPlatformMessages(data as unknown as Record<string, string>); });
     return () => { active = false; };
   }, []);
   const rejected = status === "rejected" || status === "failed";
