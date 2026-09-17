@@ -307,8 +307,8 @@ function QuestionnairePage() {
       _questionnaire_id: q.id,
       _answers: submittedAnswers.map((answer, i) => ({ question: q.questions[i]?.question ?? "", answer })),
     });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error("Could not submit questionnaire", { description: error.message });
       return;
     }
