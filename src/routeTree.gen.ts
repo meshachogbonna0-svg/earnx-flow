@@ -9,8 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WithdrawalProcessingRouteImport } from './routes/withdrawal-processing'
+import { Route as WithdrawalConfirmationRouteImport } from './routes/withdrawal-confirmation'
 import { Route as WithdrawRouteImport } from './routes/withdraw'
 import { Route as VideosRouteImport } from './routes/videos'
+import { Route as UpgradeProcessingRouteImport } from './routes/upgrade-processing'
+import { Route as UpgradeConfirmationRouteImport } from './routes/upgrade-confirmation'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -21,8 +25,8 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as RegisterRouteImport } from './routes/register'
-import { Route as QuestionnaireRouteImport } from './routes/questionnaire'
 import { Route as ReferralsRouteImport } from './routes/referrals'
+import { Route as QuestionnaireRouteImport } from './routes/questionnaire'
 import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -30,11 +34,25 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CongratulationsRouteImport } from './routes/congratulations'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ActivationProcessingRouteImport } from './routes/activation-processing'
+import { Route as ActivationConfirmationRouteImport } from './routes/activation-confirmation'
+import { Route as ActivateConfirmationRouteImport } from './routes/activate-confirmation'
 import { Route as ActivateRouteImport } from './routes/activate'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UpgradeLevelRouteImport } from './routes/upgrade_.$level'
 
+const WithdrawalProcessingRoute = WithdrawalProcessingRouteImport.update({
+  id: '/withdrawal-processing',
+  path: '/withdrawal-processing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WithdrawalConfirmationRoute = WithdrawalConfirmationRouteImport.update({
+  id: '/withdrawal-confirmation',
+  path: '/withdrawal-confirmation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WithdrawRoute = WithdrawRouteImport.update({
   id: '/withdraw',
   path: '/withdraw',
@@ -43,6 +61,16 @@ const WithdrawRoute = WithdrawRouteImport.update({
 const VideosRoute = VideosRouteImport.update({
   id: '/videos',
   path: '/videos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpgradeProcessingRoute = UpgradeProcessingRouteImport.update({
+  id: '/upgrade-processing',
+  path: '/upgrade-processing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpgradeConfirmationRoute = UpgradeConfirmationRouteImport.update({
+  id: '/upgrade-confirmation',
+  path: '/upgrade-confirmation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UpgradeRoute = UpgradeRouteImport.update({
@@ -95,14 +123,14 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const QuestionnaireRoute = QuestionnaireRouteImport.update({
-  id: '/questionnaire',
-  path: '/questionnaire',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ReferralsRoute = ReferralsRouteImport.update({
   id: '/referrals',
   path: '/referrals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestionnaireRoute = QuestionnaireRouteImport.update({
+  id: '/questionnaire',
+  path: '/questionnaire',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PromotionsRoute = PromotionsRouteImport.update({
@@ -140,9 +168,29 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CongratulationsRoute = CongratulationsRouteImport.update({
+  id: '/congratulations',
+  path: '/congratulations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivationProcessingRoute = ActivationProcessingRouteImport.update({
+  id: '/activation-processing',
+  path: '/activation-processing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivationConfirmationRoute = ActivationConfirmationRouteImport.update({
+  id: '/activation-confirmation',
+  path: '/activation-confirmation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivateConfirmationRoute = ActivateConfirmationRouteImport.update({
+  id: '/activate-confirmation',
+  path: '/activate-confirmation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivateRoute = ActivateRouteImport.update({
@@ -164,7 +212,11 @@ const UpgradeLevelRoute = UpgradeLevelRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
+  '/activate-confirmation': typeof ActivateConfirmationRoute
+  '/activation-confirmation': typeof ActivationConfirmationRoute
+  '/activation-processing': typeof ActivationProcessingRoute
   '/admin': typeof AdminRoute
+  '/congratulations': typeof CongratulationsRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -172,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
+  '/questionnaire': typeof QuestionnaireRoute
   '/referrals': typeof ReferralsRoute
   '/register': typeof RegisterRoute
   '/requests': typeof RequestsRoute
@@ -183,14 +236,22 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/upgrade': typeof UpgradeRoute
+  '/upgrade-confirmation': typeof UpgradeConfirmationRoute
+  '/upgrade-processing': typeof UpgradeProcessingRoute
   '/videos': typeof VideosRoute
   '/withdraw': typeof WithdrawRoute
+  '/withdrawal-confirmation': typeof WithdrawalConfirmationRoute
+  '/withdrawal-processing': typeof WithdrawalProcessingRoute
   '/upgrade/$level': typeof UpgradeLevelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
+  '/activate-confirmation': typeof ActivateConfirmationRoute
+  '/activation-confirmation': typeof ActivationConfirmationRoute
+  '/activation-processing': typeof ActivationProcessingRoute
   '/admin': typeof AdminRoute
+  '/congratulations': typeof CongratulationsRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -198,6 +259,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
+  '/questionnaire': typeof QuestionnaireRoute
   '/referrals': typeof ReferralsRoute
   '/register': typeof RegisterRoute
   '/requests': typeof RequestsRoute
@@ -209,15 +271,23 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/upgrade': typeof UpgradeRoute
+  '/upgrade-confirmation': typeof UpgradeConfirmationRoute
+  '/upgrade-processing': typeof UpgradeProcessingRoute
   '/videos': typeof VideosRoute
   '/withdraw': typeof WithdrawRoute
+  '/withdrawal-confirmation': typeof WithdrawalConfirmationRoute
+  '/withdrawal-processing': typeof WithdrawalProcessingRoute
   '/upgrade/$level': typeof UpgradeLevelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
+  '/activate-confirmation': typeof ActivateConfirmationRoute
+  '/activation-confirmation': typeof ActivationConfirmationRoute
+  '/activation-processing': typeof ActivationProcessingRoute
   '/admin': typeof AdminRoute
+  '/congratulations': typeof CongratulationsRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -225,6 +295,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
+  '/questionnaire': typeof QuestionnaireRoute
   '/referrals': typeof ReferralsRoute
   '/register': typeof RegisterRoute
   '/requests': typeof RequestsRoute
@@ -236,8 +307,12 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/upgrade': typeof UpgradeRoute
+  '/upgrade-confirmation': typeof UpgradeConfirmationRoute
+  '/upgrade-processing': typeof UpgradeProcessingRoute
   '/videos': typeof VideosRoute
   '/withdraw': typeof WithdrawRoute
+  '/withdrawal-confirmation': typeof WithdrawalConfirmationRoute
+  '/withdrawal-processing': typeof WithdrawalProcessingRoute
   '/upgrade_/$level': typeof UpgradeLevelRoute
 }
 export interface FileRouteTypes {
@@ -245,7 +320,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activate'
+    | '/activate-confirmation'
+    | '/activation-confirmation'
+    | '/activation-processing'
     | '/admin'
+    | '/congratulations'
     | '/dashboard'
     | '/forgot-password'
     | '/login'
@@ -253,6 +332,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/promotions'
+    | '/questionnaire'
     | '/referrals'
     | '/register'
     | '/requests'
@@ -264,14 +344,22 @@ export interface FileRouteTypes {
     | '/terms'
     | '/transactions'
     | '/upgrade'
+    | '/upgrade-confirmation'
+    | '/upgrade-processing'
     | '/videos'
     | '/withdraw'
+    | '/withdrawal-confirmation'
+    | '/withdrawal-processing'
     | '/upgrade/$level'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/activate'
+    | '/activate-confirmation'
+    | '/activation-confirmation'
+    | '/activation-processing'
     | '/admin'
+    | '/congratulations'
     | '/dashboard'
     | '/forgot-password'
     | '/login'
@@ -279,6 +367,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/promotions'
+    | '/questionnaire'
     | '/referrals'
     | '/register'
     | '/requests'
@@ -290,14 +379,22 @@ export interface FileRouteTypes {
     | '/terms'
     | '/transactions'
     | '/upgrade'
+    | '/upgrade-confirmation'
+    | '/upgrade-processing'
     | '/videos'
     | '/withdraw'
+    | '/withdrawal-confirmation'
+    | '/withdrawal-processing'
     | '/upgrade/$level'
   id:
     | '__root__'
     | '/'
     | '/activate'
+    | '/activate-confirmation'
+    | '/activation-confirmation'
+    | '/activation-processing'
     | '/admin'
+    | '/congratulations'
     | '/dashboard'
     | '/forgot-password'
     | '/login'
@@ -305,6 +402,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/promotions'
+    | '/questionnaire'
     | '/referrals'
     | '/register'
     | '/requests'
@@ -316,15 +414,23 @@ export interface FileRouteTypes {
     | '/terms'
     | '/transactions'
     | '/upgrade'
+    | '/upgrade-confirmation'
+    | '/upgrade-processing'
     | '/videos'
     | '/withdraw'
+    | '/withdrawal-confirmation'
+    | '/withdrawal-processing'
     | '/upgrade_/$level'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivateRoute: typeof ActivateRoute
+  ActivateConfirmationRoute: typeof ActivateConfirmationRoute
+  ActivationConfirmationRoute: typeof ActivationConfirmationRoute
+  ActivationProcessingRoute: typeof ActivationProcessingRoute
   AdminRoute: typeof AdminRoute
+  CongratulationsRoute: typeof CongratulationsRoute
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -332,9 +438,9 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   PromotionsRoute: typeof PromotionsRoute
+  QuestionnaireRoute: typeof QuestionnaireRoute
   ReferralsRoute: typeof ReferralsRoute
   RegisterRoute: typeof RegisterRoute
-  QuestionnaireRoute: typeof QuestionnaireRoute
   RequestsRoute: typeof RequestsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SupportRoute: typeof SupportRoute
@@ -344,13 +450,31 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TransactionsRoute: typeof TransactionsRoute
   UpgradeRoute: typeof UpgradeRoute
+  UpgradeConfirmationRoute: typeof UpgradeConfirmationRoute
+  UpgradeProcessingRoute: typeof UpgradeProcessingRoute
   VideosRoute: typeof VideosRoute
   WithdrawRoute: typeof WithdrawRoute
+  WithdrawalConfirmationRoute: typeof WithdrawalConfirmationRoute
+  WithdrawalProcessingRoute: typeof WithdrawalProcessingRoute
   UpgradeLevelRoute: typeof UpgradeLevelRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/withdrawal-processing': {
+      id: '/withdrawal-processing'
+      path: '/withdrawal-processing'
+      fullPath: '/withdrawal-processing'
+      preLoaderRoute: typeof WithdrawalProcessingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/withdrawal-confirmation': {
+      id: '/withdrawal-confirmation'
+      path: '/withdrawal-confirmation'
+      fullPath: '/withdrawal-confirmation'
+      preLoaderRoute: typeof WithdrawalConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/withdraw': {
       id: '/withdraw'
       path: '/withdraw'
@@ -363,6 +487,20 @@ declare module '@tanstack/react-router' {
       path: '/videos'
       fullPath: '/videos'
       preLoaderRoute: typeof VideosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upgrade-processing': {
+      id: '/upgrade-processing'
+      path: '/upgrade-processing'
+      fullPath: '/upgrade-processing'
+      preLoaderRoute: typeof UpgradeProcessingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upgrade-confirmation': {
+      id: '/upgrade-confirmation'
+      path: '/upgrade-confirmation'
+      fullPath: '/upgrade-confirmation'
+      preLoaderRoute: typeof UpgradeConfirmationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/upgrade': {
@@ -435,18 +573,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/questionnaire': {
-      id: '/questionnaire'
-      path: '/questionnaire'
-      fullPath: '/questionnaire'
-      preLoaderRoute: typeof QuestionnaireRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/referrals': {
       id: '/referrals'
       path: '/referrals'
       fullPath: '/referrals'
       preLoaderRoute: typeof ReferralsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/questionnaire': {
+      id: '/questionnaire'
+      path: '/questionnaire'
+      fullPath: '/questionnaire'
+      preLoaderRoute: typeof QuestionnaireRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/promotions': {
@@ -498,11 +636,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/congratulations': {
+      id: '/congratulations'
+      path: '/congratulations'
+      fullPath: '/congratulations'
+      preLoaderRoute: typeof CongratulationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activation-processing': {
+      id: '/activation-processing'
+      path: '/activation-processing'
+      fullPath: '/activation-processing'
+      preLoaderRoute: typeof ActivationProcessingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activation-confirmation': {
+      id: '/activation-confirmation'
+      path: '/activation-confirmation'
+      fullPath: '/activation-confirmation'
+      preLoaderRoute: typeof ActivationConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activate-confirmation': {
+      id: '/activate-confirmation'
+      path: '/activate-confirmation'
+      fullPath: '/activate-confirmation'
+      preLoaderRoute: typeof ActivateConfirmationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activate': {
@@ -532,7 +698,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivateRoute: ActivateRoute,
+  ActivateConfirmationRoute: ActivateConfirmationRoute,
+  ActivationConfirmationRoute: ActivationConfirmationRoute,
+  ActivationProcessingRoute: ActivationProcessingRoute,
   AdminRoute: AdminRoute,
+  CongratulationsRoute: CongratulationsRoute,
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
@@ -540,9 +710,9 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   PromotionsRoute: PromotionsRoute,
+  QuestionnaireRoute: QuestionnaireRoute,
   ReferralsRoute: ReferralsRoute,
   RegisterRoute: RegisterRoute,
-  QuestionnaireRoute: QuestionnaireRoute,
   RequestsRoute: RequestsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SupportRoute: SupportRoute,
@@ -552,10 +722,24 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TransactionsRoute: TransactionsRoute,
   UpgradeRoute: UpgradeRoute,
+  UpgradeConfirmationRoute: UpgradeConfirmationRoute,
+  UpgradeProcessingRoute: UpgradeProcessingRoute,
   VideosRoute: VideosRoute,
   WithdrawRoute: WithdrawRoute,
+  WithdrawalConfirmationRoute: WithdrawalConfirmationRoute,
+  WithdrawalProcessingRoute: WithdrawalProcessingRoute,
   UpgradeLevelRoute: UpgradeLevelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
