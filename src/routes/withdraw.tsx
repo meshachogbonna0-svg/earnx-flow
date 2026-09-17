@@ -48,6 +48,7 @@ type Withdrawal = {
 type WithdrawResult = {
   ok?: boolean;
   reason?: string;
+  id?: string;
   reference?: string;
   min?: number;
   max?: number;
