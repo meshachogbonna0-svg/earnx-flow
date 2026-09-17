@@ -297,6 +297,7 @@ function QuestionnairePage() {
   };
 
   const finish = async (submittedAnswers = answers) => {
+    if (saving) return;
     if (current.required !== false && !currentAnswer.trim()) {
       toast.error("Please answer this question before continuing.");
       return;
@@ -311,8 +312,15 @@ function QuestionnairePage() {
       toast.error("Could not submit questionnaire", { description: error.message });
       return;
     }
-    const result = (data ?? {}) as { ok?: boolean; reward?: number; welcome_bonus?: number; reason?: string };
+    const result = (data ?? {}) as {
+      ok?: boolean;
+      reward?: number;
+      welcome_bonus?: number;
+      total_reward?: number;
+      reason?: string;
+    };
     if (!result.ok) {
+      setSaving(false);
       toast.error(
         result.reason === "incomplete"
           ? "Please answer every required question."
@@ -323,6 +331,7 @@ function QuestionnairePage() {
     const credited = Number(result.total_reward ?? result.welcome_bonus ?? result.reward ?? 0);
     setCreditedAmount(credited);
     toast.success("Congratulations! Your welcome bonus has been credited.");
+    navigate({ to: "/congratulations", search: { amount: String(credited), kind: "questionnaire" }, replace: true });
   };
 
   return (
