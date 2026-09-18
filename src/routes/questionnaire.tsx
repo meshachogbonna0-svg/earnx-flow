@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
-<<<<<<< HEAD
-=======
-import { naira } from "@/lib/format";
->>>>>>> origin/main
 
 type Question = {
   question: string;
@@ -24,250 +20,25 @@ type Questionnaire = {
   questions: Question[];
 };
 
-const QUESTION_OPTIONS: Array<{ match: RegExp; type: Question["type"]; options: string[] }> = [
-  {
-    match: /how much do you earn monthly|monthly income|monthly earning/i,
-    type: "single",
-    options: [
-      "I currently earn less than ₦50,000 per month",
-      "I earn between ₦50,000 and ₦100,000 per month",
-      "I earn between ₦100,001 and ₦250,000 per month",
-      "I earn between ₦250,001 and ₦500,000 per month",
-      "I earn between ₦500,001 and ₦1,000,000 per month",
-      "I earn between ₦1,000,001 and ₦2,500,000 per month",
-      "I earn more than ₦2,500,000 per month",
-      "I currently have no regular monthly income",
-    ],
-  },
-  {
-    match: /annual income|income range|yearly income/i,
-    type: "single",
-    options: [
-      "My annual income is less than ₦600,000",
-      "My annual income is between ₦600,000 and ₦1,200,000",
-      "My annual income is between ₦1,200,001 and ₦2,400,000",
-      "My annual income is between ₦2,400,001 and ₦6,000,000",
-      "My annual income is between ₦6,000,001 and ₦12,000,000",
-      "My annual income is above ₦12,000,000",
-      "I currently do not have a regular annual income",
-    ],
-  },
-  {
-    match: /employment status|employment type|what do you do for work/i,
-    type: "single",
-    options: [
-      "I am currently employed full-time",
-      "I am currently employed part-time",
-      "I am self-employed or running my own business",
-      "I work as a freelancer or independent contractor",
-      "I am a student and currently not employed",
-      "I am currently unemployed and looking for work",
-      "I am retired",
-      "I have another employment situation",
-    ],
-  },
-  {
-    match: /primary source of income|main source of income|source of income/i,
-    type: "single",
-    options: [
-      "My main income comes from a full-time job",
-      "My main income comes from a part-time job",
-      "My main income comes from my own business",
-      "My main income comes from freelance or contract work",
-      "My main income comes from online work or digital platforms",
-      "My main income comes from investments or other assets",
-      "I receive financial support from family or other people",
-      "I currently do not have a regular source of income",
-    ],
-  },
-  {
-<<<<<<< HEAD
-    match:
-      /how much do you hope to earn|hope to earn.*monthly|expected.*earn.*monthly|desired.*income/i,
-=======
-    match: /how much do you hope to earn|hope to earn.*monthly|expected.*earn.*monthly|desired.*income/i,
->>>>>>> origin/main
-    type: "single",
-    options: [
-      "I would like to earn less than ₦50,000 per month",
-      "I would like to earn between ₦50,000 and ₦100,000 per month",
-      "I would like to earn between ₦100,001 and ₦250,000 per month",
-      "I would like to earn between ₦250,001 and ₦500,000 per month",
-      "I would like to earn between ₦500,001 and ₦1,000,000 per month",
-      "I would like to earn between ₦1,000,001 and ₦2,500,000 per month",
-      "I would like to earn more than ₦2,500,000 per month",
-    ],
-  },
-  {
-    match: /how much time can you spend|time.*spend.*daily|how many hours.*daily/i,
-    type: "single",
-    options: [
-      "I can spend less than 15 minutes earning each day",
-      "I can spend between 15 and 30 minutes earning each day",
-      "I can spend between 30 minutes and 1 hour earning each day",
-      "I can spend between 1 and 2 hours earning each day",
-      "I can spend between 2 and 4 hours earning each day",
-      "I can spend more than 4 hours earning each day",
-    ],
-  },
-  {
-<<<<<<< HEAD
-    match:
-      /how often do you plan to withdraw|withdraw.*often|withdrawal frequency|how frequently.*withdraw/i,
-=======
-    match: /how often do you plan to withdraw|withdraw.*often|withdrawal frequency|how frequently.*withdraw/i,
->>>>>>> origin/main
-    type: "single",
-    options: [
-      "I plan to withdraw whenever I reach my available withdrawal limit",
-      "I plan to withdraw once every week",
-      "I plan to withdraw several times each month",
-      "I plan to withdraw once or twice each month",
-      "I plan to withdraw only when I have an urgent need",
-      "I am not sure yet how frequently I will withdraw",
-    ],
-  },
-  {
-    match: /^age$|how old are you|age range/i,
-    type: "single",
-    options: [
-      "I am under 18 years old",
-      "I am between 18 and 24 years old",
-      "I am between 25 and 34 years old",
-      "I am between 35 and 44 years old",
-      "I am between 45 and 54 years old",
-      "I am between 55 and 64 years old",
-      "I am 65 years old or above",
-    ],
-  },
-  {
-    match: /how did you hear about earnx|how did you hear about us|where did you hear/i,
-    type: "single",
-    options: [
-      "I heard about EarnX-Finance from a friend or family member",
-      "I discovered EarnX-Finance through WhatsApp",
-      "I discovered EarnX-Finance through Facebook",
-      "I discovered EarnX-Finance through Instagram",
-      "I discovered EarnX-Finance through TikTok",
-      "I found EarnX-Finance through Google or another search engine",
-      "I discovered EarnX-Finance through YouTube",
-      "I found EarnX-Finance through another source",
-    ],
-  },
-  {
-    match: /do you currently have a job|are you employed/i,
-    type: "boolean",
-    options: ["Yes, I currently have a job", "No, I currently do not have a job"],
-  },
-  {
-    match: /gender|sex/i,
-    type: "single",
-    options: ["Male", "Female", "Prefer not to disclose my gender"],
-  },
-  {
-    match: /marital status/i,
-    type: "single",
-    options: [
-      "I am currently single",
-      "I am currently married",
-      "I am divorced",
-      "I am widowed",
-      "I prefer not to disclose my marital status",
-    ],
-  },
-  {
-    match: /education|highest level of education/i,
-    type: "single",
-    options: [
-      "I completed secondary school",
-      "I have a diploma or professional certificate",
-      "I am currently an undergraduate student",
-      "I have completed an undergraduate degree",
-      "I have completed postgraduate education",
-      "I have another educational background",
-    ],
-  },
-  {
-    match: /^country$|which country|country of residence/i,
-    type: "dropdown",
-<<<<<<< HEAD
-    options: [
-      "Nigeria",
-      "Ghana",
-      "Kenya",
-      "South Africa",
-      "United Kingdom",
-      "United States",
-      "Canada",
-      "Other",
-    ],
-=======
-    options: ["Nigeria", "Ghana", "Kenya", "South Africa", "United Kingdom", "United States", "Canada", "Other"],
->>>>>>> origin/main
-  },
-  {
-    match: /state\/province|state or province|^state$/i,
-    type: "dropdown",
-    options: [
-<<<<<<< HEAD
-      "Abia",
-      "Adamawa",
-      "Akwa Ibom",
-      "Anambra",
-      "Bauchi",
-      "Bayelsa",
-      "Benue",
-      "Borno",
-      "Cross River",
-      "Delta",
-      "Ebonyi",
-      "Edo",
-      "Ekiti",
-      "Enugu",
-      "Gombe",
-      "Imo",
-      "Jigawa",
-      "Kaduna",
-      "Kano",
-      "Katsina",
-      "Kebbi",
-      "Kogi",
-      "Kwara",
-      "Lagos",
-      "Nasarawa",
-      "Niger",
-      "Ogun",
-      "Ondo",
-      "Osun",
-      "Oyo",
-      "Plateau",
-      "Rivers",
-      "Sokoto",
-      "Taraba",
-      "Yobe",
-      "Zamfara",
-      "FCT Abuja",
-      "Other",
-=======
-      "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta",
-      "Ebonyi","Edo","Ekiti","Enugu","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi",
-      "Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers",
-      "Sokoto","Taraba","Yobe","Zamfara","FCT Abuja","Other",
->>>>>>> origin/main
-    ],
-  },
+const COUNTRY_OPTIONS = ["Nigeria", "Ghana", "Kenya", "South Africa", "United Kingdom", "United States", "Canada", "Other"];
+const STATE_OPTIONS = [
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta",
+  "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi",
+  "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers",
+  "Sokoto", "Taraba", "Yobe", "Zamfara", "FCT Abuja", "Other",
 ];
 
 function prepareQuestion(raw: Question): Question {
   const text = String(raw.question ?? "").trim();
-  const matched = QUESTION_OPTIONS.find((entry) => entry.match.test(text));
-  if (!matched) return raw;
-  return {
-    ...raw,
-    type: matched.type,
-    options: matched.options,
-    required: raw.required !== false,
-  };
+  if (/country of residence|^country$/i.test(text)) return { ...raw, type: "dropdown", options: COUNTRY_OPTIONS, required: raw.required !== false };
+  if (/state\/province|state or province|^state$/i.test(text)) return { ...raw, type: "dropdown", options: STATE_OPTIONS, required: raw.required !== false };
+  if (/gender|sex/i.test(text)) return { ...raw, type: "single", options: ["Male", "Female", "Prefer not to disclose my gender"], required: raw.required !== false };
+  if (/do you currently have a job|are you employed/i.test(text)) return { ...raw, type: "boolean", options: ["Yes", "No"], required: raw.required !== false };
+  if (/age|employment status|income|how did you hear|withdraw|how much time|hope to earn/i.test(text)) {
+    const options = raw.options?.length ? raw.options : ["Prefer not to say", "Option 1", "Option 2", "Option 3"];
+    return { ...raw, type: raw.type === "paragraph" ? raw.type : "single", options, required: raw.required !== false };
+  }
+  return raw;
 }
 
 export const Route = createFileRoute("/questionnaire")({
@@ -275,14 +46,7 @@ export const Route = createFileRoute("/questionnaire")({
   head: () => ({
     meta: [
       { title: "Welcome Questionnaire — EarnX-Finance" },
-<<<<<<< HEAD
-      {
-        name: "description",
-        content: "Complete your welcome questionnaire to unlock your welcome bonus.",
-      },
-=======
       { name: "description", content: "Complete your welcome questionnaire to unlock your welcome bonus." },
->>>>>>> origin/main
     ],
   }),
   component: QuestionnairePage,
@@ -292,16 +56,12 @@ function QuestionnairePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [q, setQ] = useState<Questionnaire | null>(null);
+  const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
-<<<<<<< HEAD
-=======
-  const [creditedAmount, setCreditedAmount] = useState(0);
->>>>>>> origin/main
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
         navigate({ to: "/login", replace: true });
@@ -316,353 +76,101 @@ function QuestionnairePage() {
         navigate({ to: "/dashboard", replace: true });
         return;
       }
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("questionnaires")
         .select("id, title, description, reward, questions")
         .eq("active", true)
         .order("sort_order", { ascending: true })
         .limit(1)
         .maybeSingle();
-      if (!data) {
-        toast.error("The welcome questionnaire is not available yet. Please try again later.");
+      if (error || !data) {
+        toast.error("The welcome questionnaire is not available yet.");
         navigate({ to: "/dashboard", replace: true });
         return;
       }
-      const questions = Array.isArray(data.questions)
-        ? (data.questions as Question[]).map(prepareQuestion)
-        : [];
-      setQ({ ...(data as Omit<Questionnaire, "questions">), questions });
+      const questions = Array.isArray(data.questions) ? (data.questions as Question[]).map(prepareQuestion) : [];
+      setQuestionnaire({ ...(data as Omit<Questionnaire, "questions">), questions });
       setAnswers(Array(questions.length).fill(""));
       setLoading(false);
     })();
   }, [navigate]);
 
   if (loading) return <PageLoader />;
-  if (!q || q.questions.length === 0) {
+  if (!questionnaire || questionnaire.questions.length === 0) {
     return (
       <AppPage title="Welcome to EarnX-Finance">
         <div className="rounded-2xl border border-gold/30 bg-card p-6 text-center">
           <Sparkles className="mx-auto h-8 w-8 text-gold" />
-<<<<<<< HEAD
-          <p className="mt-3 text-sm font-semibold">
-            Your welcome bonus questionnaire is being prepared.
-          </p>
-=======
-          <p className="mt-3 text-sm font-semibold">Your welcome bonus questionnaire is being prepared.</p>
->>>>>>> origin/main
+          <p className="mt-3 text-sm font-semibold">Your welcome questionnaire is being prepared.</p>
         </div>
       </AppPage>
     );
   }
 
-  const current = q.questions[index];
-  const currentAnswer = answers[index] ?? "";
-<<<<<<< HEAD
-  const setAnswer = (value: string) =>
-    setAnswers((prev) => prev.map((v, i) => (i === index ? value : v)));
-=======
-  const setAnswer = (value: string) => setAnswers((prev) => prev.map((v, i) => (i === index ? value : v)));
->>>>>>> origin/main
-  const isLast = index === q.questions.length - 1;
-
-  const chooseSingleAnswer = (value: string) => {
-    if (saving) return;
-    const nextAnswers = answers.map((answer, i) => (i === index ? value : answer));
-    setAnswers(nextAnswers);
-    if (isLast) {
-      void finish(nextAnswers);
-      return;
-    }
-    window.setTimeout(() => setIndex((v) => Math.min(v + 1, q.questions.length - 1)), 120);
+  const current = questionnaire.questions[index];
+  const answer = answers[index] ?? "";
+  const isLast = index === questionnaire.questions.length - 1;
+  const setAnswer = (value: string) => setAnswers((previous) => previous.map((item, i) => (i === index ? value : item)));
+  const selectAnswer = (value: string) => {
+    setAnswer(value);
+    if (!isLast) window.setTimeout(() => setIndex((value) => value + 1), 120);
+    else void finish(answers.map((item, i) => (i === index ? value : item)));
   };
 
-  const next = () => {
-    if (current.required !== false && !currentAnswer.trim()) {
-      toast.error("Please answer this question before continuing.");
-      return;
-    }
-    setIndex((v) => Math.min(v + 1, q.questions.length - 1));
-  };
-
-  const finish = async (submittedAnswers = answers) => {
+  async function finish(submittedAnswers = answers) {
     if (saving) return;
-    if (current.required !== false && !currentAnswer.trim()) {
-      toast.error("Please answer this question before continuing.");
+    if (questionnaire.questions.some((question, i) => question.required !== false && !String(submittedAnswers[i] ?? "").trim())) {
+      toast.error("Please answer every required question.");
       return;
     }
     setSaving(true);
     const { data, error } = await supabase.rpc("complete_questionnaire", {
-      _questionnaire_id: q.id,
-<<<<<<< HEAD
-      _answers: submittedAnswers.map((answer, i) => ({
-        question: q.questions[i]?.question ?? "",
-        answer,
-      })),
-=======
-      _answers: submittedAnswers.map((answer, i) => ({ question: q.questions[i]?.question ?? "", answer })),
->>>>>>> origin/main
+      _questionnaire_id: questionnaire.id,
+      _answers: submittedAnswers.map((value, i) => ({ question: questionnaire.questions[i]?.question ?? "", answer: value })),
     });
-    if (error) {
+    if (error || !(data as { ok?: boolean } | null)?.ok) {
       setSaving(false);
-      toast.error("Could not submit questionnaire", { description: error.message });
+      toast.error("The questionnaire could not be completed.", { description: error?.message });
       return;
     }
-    const result = (data ?? {}) as {
-      ok?: boolean;
-      reward?: number;
-      welcome_bonus?: number;
-      total_reward?: number;
-      reason?: string;
-    };
-    if (!result.ok) {
-      setSaving(false);
-      toast.error(
-        result.reason === "incomplete"
-          ? "Please answer every required question."
-          : "The questionnaire could not be completed.",
-      );
-      return;
-    }
-<<<<<<< HEAD
-    toast.success("Congratulations! Your welcome bonus has been credited.");
+    toast.success("Your welcome bonus has been credited.");
     navigate({ to: "/dashboard", replace: true });
-=======
-    const credited = Number(result.total_reward ?? result.welcome_bonus ?? result.reward ?? 0);
-    setCreditedAmount(credited);
-    toast.success("Congratulations! Your welcome bonus has been credited.");
-    navigate({ to: "/congratulations", search: { amount: String(credited), kind: "questionnaire" }, replace: true });
->>>>>>> origin/main
-  };
+  }
+
+  const choiceQuestion = ["single", "dropdown", "boolean"].includes(current.type ?? "single");
+  const options = current.type === "boolean" ? ["Yes", "No"] : current.options ?? [];
 
   return (
-    <>
-<<<<<<< HEAD
-      <AppPage
-        title="Welcome to EarnX-Finance"
-        subtitle="Complete this short questionnaire to unlock your welcome bonus."
-      >
-        <section className="rounded-3xl border border-gold/30 bg-gradient-to-br from-navy via-card to-navy-deep p-5 shadow-soft">
-          <div className="flex items-center justify-between gap-3">
-            <span className="rounded-full bg-gold/10 px-3 py-1 text-[10px] font-bold text-gold">
-              Question {index + 1} of {q.questions.length}
-            </span>
-            <span className="text-[10px] font-semibold text-muted-foreground">
-              {Math.round(((index + 1) / q.questions.length) * 100)}%
-            </span>
-          </div>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
-            <div
-              className="h-full rounded-full bg-gold-gradient transition-all"
-              style={{ width: `${((index + 1) / q.questions.length) * 100}%` }}
-            />
-          </div>
-          <h2 className="mt-7 text-lg font-extrabold leading-snug">{current.question}</h2>
-
-          {["single", "dropdown", "boolean", "multiple"].includes(current.type ?? "single") ? (
-            <div className="mt-5 space-y-2">
-              {(current.type === "boolean" ? ["Yes", "No"] : (current.options ?? [])).map(
-                (option) => {
-                  const selected =
-                    current.type === "multiple"
-                      ? (() => {
-                          try {
-                            return (JSON.parse(currentAnswer || "[]") as string[]).includes(option);
-                          } catch {
-                            return false;
-                          }
-                        })()
-                      : currentAnswer === option;
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => {
-                        if (current.type === "multiple") {
-                          let selectedOptions: string[] = [];
-                          try {
-                            selectedOptions = JSON.parse(currentAnswer || "[]");
-                          } catch {
-                            selectedOptions = [];
-                          }
-                          const next = selectedOptions.includes(option)
-                            ? selectedOptions.filter((v) => v !== option)
-                            : [...selectedOptions, option];
-                          setAnswer(JSON.stringify(next));
-                        } else {
-                          chooseSingleAnswer(option);
-                        }
-                      }}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left text-sm transition ${
-                        selected
-                          ? "border-gold bg-gold/10 text-gold"
-                          : "border-border bg-background/40 hover:border-gold/30"
-                      }`}
-                    >
-                      <span
-                        className={`grid h-5 w-5 place-items-center rounded-full border ${selected ? "border-gold bg-gold text-gold-foreground" : "border-muted-foreground/40"}`}
-                      >
-                        {selected && <CheckCircle2 className="h-4 w-4" />}
-                      </span>
-                      {option}
-                    </button>
-                  );
-                },
-              )}
-            </div>
-          ) : (
-            <textarea
-              value={currentAnswer}
-              onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Type your answer…"
-              rows={current.type === "paragraph" ? 6 : 3}
-              className="mt-5 w-full rounded-2xl border border-border bg-background/50 p-3.5 text-sm outline-none transition focus:border-gold/60"
-            />
-          )}
-
-          <div className="mt-6 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              disabled={index === 0}
-              onClick={() => setIndex((v) => Math.max(0, v - 1))}
-              className="inline-flex items-center gap-1 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4" /> Back
-            </button>
-            {isLast ? (
-              ["single", "dropdown", "boolean"].includes(current.type ?? "single") ? (
-                <span className="text-right text-[10px] font-semibold text-muted-foreground">
-                  Select an answer to finish automatically
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void finish()}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground disabled:opacity-60"
-                >
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {saving ? "Crediting bonus…" : "Finish & claim bonus"}
-                </button>
-              )
-            ) : ["single", "dropdown", "boolean"].includes(current.type ?? "single") ? (
-              <span className="text-right text-[10px] font-semibold text-muted-foreground">
-                Choose an answer to continue
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={next}
-                className="inline-flex items-center gap-1 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground"
-              >
-                Next <ChevronRight className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </section>
-        <p className="text-center text-[10px] text-muted-foreground">
-          Your welcome reward is credited only after the questionnaire is completed.
-        </p>
-      </AppPage>
-=======
-
-    <AppPage title="Welcome to EarnX-Finance" subtitle="Complete this short questionnaire to unlock your welcome bonus.">
+    <AppPage title={questionnaire.title || "Welcome to EarnX-Finance"} subtitle={questionnaire.description || "Complete this short questionnaire to unlock your welcome bonus."}>
       <section className="rounded-3xl border border-gold/30 bg-gradient-to-br from-navy via-card to-navy-deep p-5 shadow-soft">
         <div className="flex items-center justify-between gap-3">
-          <span className="rounded-full bg-gold/10 px-3 py-1 text-[10px] font-bold text-gold">
-            Question {index + 1} of {q.questions.length}
-          </span>
-          <span className="text-[10px] font-semibold text-muted-foreground">
-            {Math.round(((index + 1) / q.questions.length) * 100)}%
-          </span>
+          <span className="rounded-full bg-gold/10 px-3 py-1 text-[10px] font-bold text-gold">Question {index + 1} of {questionnaire.questions.length}</span>
+          <span className="text-[10px] font-semibold text-muted-foreground">{Math.round(((index + 1) / questionnaire.questions.length) * 100)}%</span>
         </div>
-        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full rounded-full bg-gold-gradient transition-all" style={{ width: `${((index + 1) / q.questions.length) * 100}%` }} />
-        </div>
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gold-gradient transition-all" style={{ width: `${((index + 1) / questionnaire.questions.length) * 100}%` }} /></div>
         <h2 className="mt-7 text-lg font-extrabold leading-snug">{current.question}</h2>
 
-        {["single", "dropdown", "boolean", "multiple"].includes(current.type ?? "single") ? (
+        {choiceQuestion ? (
           <div className="mt-5 space-y-2">
-            {(current.type === "boolean" ? ["Yes", "No"] : current.options ?? []).map((option) => {
-              const selected = current.type === "multiple"
-                ? (() => { try { return (JSON.parse(currentAnswer || "[]") as string[]).includes(option); } catch { return false; } })()
-                : currentAnswer === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    if (current.type === "multiple") {
-                      let selectedOptions: string[] = [];
-                      try { selectedOptions = JSON.parse(currentAnswer || "[]"); } catch { selectedOptions = []; }
-                      const next = selectedOptions.includes(option)
-                        ? selectedOptions.filter((v) => v !== option)
-                        : [...selectedOptions, option];
-                      setAnswer(JSON.stringify(next));
-                    } else {
-                      chooseSingleAnswer(option);
-                    }
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left text-sm transition ${
-                    selected ? "border-gold bg-gold/10 text-gold" : "border-border bg-background/40 hover:border-gold/30"
-                  }`}
-                >
-                  <span className={`grid h-5 w-5 place-items-center rounded-full border ${selected ? "border-gold bg-gold text-gold-foreground" : "border-muted-foreground/40"}`}>
-                    {selected && <CheckCircle2 className="h-4 w-4" />}
-                  </span>
-                  {option}
-                </button>
-              );
-            })}
+            {options.map((option) => (
+              <button key={option} type="button" onClick={() => selectAnswer(option)} className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left text-sm transition ${answer === option ? "border-gold bg-gold/10 text-gold" : "border-border bg-background/40 hover:border-gold/30"}`}>
+                <span className={`grid h-5 w-5 place-items-center rounded-full border ${answer === option ? "border-gold bg-gold text-gold-foreground" : "border-muted-foreground/40"}`}>{answer === option && <CheckCircle2 className="h-4 w-4" />}</span>
+                {option}
+              </button>
+            ))}
           </div>
         ) : (
-          <textarea
-            value={currentAnswer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Type your answer…"
-            rows={current.type === "paragraph" ? 6 : 3}
-            className="mt-5 w-full rounded-2xl border border-border bg-background/50 p-3.5 text-sm outline-none transition focus:border-gold/60"
-          />
+          <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Type your answer…" rows={current.type === "paragraph" ? 6 : 3} className="mt-5 w-full rounded-2xl border border-border bg-background/50 p-3.5 text-sm outline-none transition focus:border-gold/60" />
         )}
 
         <div className="mt-6 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            disabled={index === 0}
-            onClick={() => setIndex((v) => Math.max(0, v - 1))}
-            className="inline-flex items-center gap-1 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" /> Back
-          </button>
+          <button type="button" disabled={index === 0 || saving} onClick={() => setIndex((value) => Math.max(0, value - 1))} className="inline-flex items-center gap-1 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold disabled:opacity-40"><ChevronLeft className="h-4 w-4" /> Back</button>
           {isLast ? (
-            ["single", "dropdown", "boolean"].includes(current.type ?? "single") ? (
-              <span className="text-right text-[10px] font-semibold text-muted-foreground">Select an answer to finish automatically</span>
-            ) : (
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void finish()}
-                className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground disabled:opacity-60"
-              >
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {saving ? "Crediting bonus…" : "Finish & claim bonus"}
-              </button>
-            )
-          ) : (
-            ["single", "dropdown", "boolean"].includes(current.type ?? "single") ? (
-              <span className="text-right text-[10px] font-semibold text-muted-foreground">Choose an answer to continue</span>
-            ) : (
-              <button type="button" onClick={next} className="inline-flex items-center gap-1 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground">
-                Next <ChevronRight className="h-4 w-4" />
-              </button>
-            )
-          )}
+            choiceQuestion ? <span className="text-right text-[10px] font-semibold text-muted-foreground">Select an answer to finish automatically</span> : <button type="button" disabled={saving} onClick={() => void finish()} className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground disabled:opacity-60">{saving && <Loader2 className="h-4 w-4 animate-spin" />}{saving ? "Crediting bonus…" : "Finish & claim bonus"}</button>
+          ) : choiceQuestion ? <span className="text-right text-[10px] font-semibold text-muted-foreground">Choose an answer to continue</span> : <button type="button" onClick={() => { if (!answer.trim()) return toast.error("Please answer this question before continuing."); setIndex((value) => value + 1); }} className="inline-flex items-center gap-1 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground">Next <ChevronRight className="h-4 w-4" /></button>}
         </div>
       </section>
-      <p className="text-center text-[10px] text-muted-foreground">
-        Your welcome reward is credited only after the questionnaire is completed.
-      </p>
+      <p className="text-center text-[10px] text-muted-foreground">Your welcome reward is credited only after the questionnaire is completed.</p>
     </AppPage>
->>>>>>> origin/main
-    </>
   );
 }
