@@ -38,11 +38,18 @@ export const Route = createFileRoute("/activate")({
 });
 
 type Settings = PaymentSettings & {
+<<<<<<< HEAD
   activation_instructions: string;
 };
 
 type Level = { level: number; name: string; activation_fee: number };
 
+=======
+  activation_fee: number;
+  activation_instructions: string;
+};
+
+>>>>>>> origin/main
 const reasons: Record<string, string> = {
   already_activated: "Your account is already activated.",
   pending: "Your activation is already under review.",
@@ -60,7 +67,10 @@ function ActivatePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
+<<<<<<< HEAD
   const [level, setLevel] = useState<Level | null>(null);
+=======
+>>>>>>> origin/main
   const [status, setStatus] = useState<string>("not_activated");
   const [requestNote, setRequestNote] = useState<string | null>(null);
   const [payerName, setPayerName] = useState("");
@@ -76,6 +86,7 @@ function ActivatePage() {
         navigate({ to: "/login", replace: true });
         return;
       }
+<<<<<<< HEAD
       const [{ data: s }, { data: p }, { data: req }, { data: levels }] = await Promise.all([
         supabase
           .from("platform_settings")
@@ -86,13 +97,27 @@ function ActivatePage() {
         supabase.from("profiles").select("activation, level, first_name").eq("id", auth.user.id).maybeSingle(),
         supabase.from("activation_requests").select("status, admin_note, level").eq("user_id", auth.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("levels").select("level, name, activation_fee").order("level"),
+=======
+      const [{ data: s }, { data: p }, { data: req }] = await Promise.all([
+        supabase
+          .from("platform_settings")
+          .select(
+            "activation_fee, activation_instructions, bank_name, account_name, account_number, security_notice, anti_scam_reminder",
+          )
+          .maybeSingle(),
+        supabase.from("profiles").select("activation, first_name").eq("id", auth.user.id).maybeSingle(),
+        supabase.from("activation_requests").select("status, admin_note").eq("user_id", auth.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+>>>>>>> origin/main
       ]);
       setSettings((s as Settings) ?? null);
       setStatus((p as { activation: string })?.activation ?? "not_activated");
       setRequestNote((req as { admin_note?: string | null } | null)?.admin_note ?? null);
       setPayerName((p as { first_name: string })?.first_name ?? "");
+<<<<<<< HEAD
       const currentLevel = Number((p as { level?: number })?.level ?? 0);
       setLevel(((levels as Level[]) ?? []).find((item) => item.level === currentLevel) ?? null);
+=======
+>>>>>>> origin/main
       setLoading(false);
     })();
   }, [navigate]);
@@ -124,13 +149,18 @@ function ActivatePage() {
   if (loading) return <PageLoader />;
 
   return (
+<<<<<<< HEAD
     <AppPage title="Level Activation" subtitle={`Activate Level ${level?.level ?? 0} separately from your upgrade`}>
+=======
+    <AppPage title="Account Activation" subtitle="One-time payment to unlock full earning">
+>>>>>>> origin/main
       <SecurityBanner />
 
       <section className="animate-fade-up rounded-2xl border border-gold/40 bg-gradient-to-br from-navy via-card to-navy-deep p-5 text-center shadow-gold-glow">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full border border-gold/50 bg-gold/10">
           <ShieldCheck className="h-5 w-5 text-gold" />
         </span>
+<<<<<<< HEAD
         <p className="mt-3 text-[10px] tracking-[0.25em] text-muted-foreground">LEVEL {level?.level ?? 0} ACTIVATION FEE</p>
         <p className="mt-1 font-display text-3xl font-extrabold">{naira(level?.activation_fee ?? 0)}</p>
         <p className="mt-2 text-xs font-bold text-gold">{level?.name ?? "Current level"}</p>
@@ -140,6 +170,13 @@ function ActivatePage() {
         <p className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 p-2.5 text-left text-[10px] leading-relaxed text-destructive">
           Upgrade payment and activation payment are separate. An approved upgrade does not activate this level automatically.
         </p>
+=======
+        <p className="mt-3 text-[10px] tracking-[0.25em] text-muted-foreground">ACTIVATION FEE</p>
+        <p className="mt-1 font-display text-3xl font-extrabold">{naira(settings?.activation_fee ?? 0)}</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          {settings?.activation_instructions}
+        </p>
+>>>>>>> origin/main
       </section>
 
       <section className="animate-fade-up rounded-2xl border border-border bg-card p-4">
@@ -156,11 +193,19 @@ function ActivatePage() {
       </section>
 
       {status === "activated" ? (
+<<<<<<< HEAD
         <RequestProcessingCard kind="activation" status="activated" amount={level?.activation_fee ?? 0} detail="Your current level activation has been approved by Admin. Withdrawal eligibility can now be checked against the remaining limits." />
       ) : status === "rejected" ? (
         <RequestProcessingCard kind="activation" status="rejected" amount={level?.activation_fee ?? 0} detail="Your current level activation request was rejected by Admin. Review the reason below before submitting a new request." note={requestNote} />
       ) : status === "pending" ? (
         <RequestProcessingCard kind="activation" status="pending" amount={level?.activation_fee ?? 0} detail="Your bank-transfer receipt has been received. Admin is reviewing this level activation request. You will be notified after approval or rejection." />
+=======
+        <RequestProcessingCard kind="activation" status="activated" amount={settings?.activation_fee ?? 0} detail="Your activation has been approved by Admin. Your account is now active and the activated benefits are available." />
+      ) : status === "rejected" ? (
+        <RequestProcessingCard kind="activation" status="rejected" amount={settings?.activation_fee ?? 0} detail="Your activation request was rejected by Admin. Review the reason below before submitting a new request." note={requestNote} />
+      ) : status === "pending" ? (
+        <RequestProcessingCard kind="activation" status="pending" amount={settings?.activation_fee ?? 0} detail="Your bank-transfer receipt has been received. Admin is reviewing your activation request. You will be notified after approval or rejection." />
+>>>>>>> origin/main
       ) : (
         <>
           <VerifiedPaymentCard settings={settings} />

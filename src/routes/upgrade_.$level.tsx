@@ -1,6 +1,10 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+<<<<<<< HEAD
 import { BatteryCharging, Check, Loader2, ShieldCheck, TrendingUp, Zap } from "lucide-react";
+=======
+import { BatteryCharging, Check, Loader2, TrendingUp, Zap } from "lucide-react";
+>>>>>>> origin/main
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
@@ -41,7 +45,10 @@ type Level = {
   level: number;
   name: string;
   upgrade_price: number;
+<<<<<<< HEAD
   activation_fee: number;
+=======
+>>>>>>> origin/main
   reward_per_tap: number;
   battery_capacity: number;
   daily_tap_limit: number;
@@ -190,6 +197,7 @@ function UpgradeLevelPage() {
         <p className="mt-2 text-[11px] text-muted-foreground">
           Current: {current?.name ?? `Level ${currentLevel}`} → Next: {plan.name}
         </p>
+<<<<<<< HEAD
         <div className="mt-4 grid grid-cols-2 gap-2 text-left">
           <div className="rounded-xl border border-gold/20 bg-gold/10 p-2.5">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Upgrade payment</p>
@@ -205,6 +213,8 @@ function UpgradeLevelPage() {
       <section className="flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-[11px] text-destructive">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
         <p><strong>Important:</strong> approving this upgrade moves you to Level {plan.level}, but Level {plan.level} remains <strong>Not Activated</strong> until you submit a separate activation request and Admin approves it.</p>
+=======
+>>>>>>> origin/main
       </section>
 
       <section className="grid grid-cols-2 gap-2.5">

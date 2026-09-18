@@ -7,7 +7,10 @@ type LevelRow = Record<string, unknown> & { level: number; name: string };
 
 const numberFields: Array<[string, string]> = [
   ["upgrade_price", "Upgrade price (₦)"],
+<<<<<<< HEAD
   ["activation_fee", "Activation fee (₦)"],
+=======
+>>>>>>> origin/main
   ["reward_per_tap", "Reward per tap (₦)"],
   ["tap_multiplier", "Tap multiplier"],
   ["battery_capacity", "Battery capacity (taps)"],
@@ -29,10 +32,14 @@ const boolFields: Array<[string, string]> = [
 ];
 
 const adminRpc = supabase as unknown as {
+<<<<<<< HEAD
   rpc: (
     fn: string,
     args?: Record<string, unknown>,
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
+=======
+  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+>>>>>>> origin/main
 };
 
 export function LevelsEditor() {
@@ -86,10 +93,13 @@ export function LevelsEditor() {
 
   return (
     <section className="space-y-2.5">
+<<<<<<< HEAD
       <p className="rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
         Set the activation price independently for each level. Users are charged the price
         configured for their current level when they submit an activation receipt.
       </p>
+=======
+>>>>>>> origin/main
       {levels.map((lv) => (
         <article key={lv.level} className="rounded-2xl border border-border bg-card">
           <button
@@ -100,6 +110,7 @@ export function LevelsEditor() {
             <span className="text-left">
               <span className="block text-xs font-bold">{lv.name}</span>
               <span className="block text-[10px] text-muted-foreground">
+<<<<<<< HEAD
                 Level {lv.level} · Upgrade ₦
                 {Number(lv["upgrade_price"] ?? 0).toLocaleString("en-NG")} · Activate ₦
                 {Number(lv["activation_fee"] ?? 0).toLocaleString("en-NG")}
@@ -108,6 +119,12 @@ export function LevelsEditor() {
             <ChevronDown
               className={`h-4 w-4 text-gold transition ${open === lv.level ? "rotate-180" : ""}`}
             />
+=======
+                Level {lv.level} · ₦{Number(lv["reward_per_tap"] ?? 0).toLocaleString("en-NG")} per tap
+              </span>
+            </span>
+            <ChevronDown className={`h-4 w-4 text-gold transition ${open === lv.level ? "rotate-180" : ""}`} />
+>>>>>>> origin/main
           </button>
 
           {open === lv.level && (
@@ -123,9 +140,13 @@ export function LevelsEditor() {
               <div className="grid grid-cols-2 gap-2">
                 {numberFields.map(([key, label]) => (
                   <label key={key} className="block">
+<<<<<<< HEAD
                     <span className="text-[10px] font-medium text-muted-foreground">
                       {key === "activation_fee" ? "Activation price for this level (₦)" : label}
                     </span>
+=======
+                    <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+>>>>>>> origin/main
                     <input
                       inputMode="decimal"
                       value={String(lv[key] ?? 0)}
@@ -136,10 +157,14 @@ export function LevelsEditor() {
                 ))}
               </div>
               {boolFields.map(([key, label]) => (
+<<<<<<< HEAD
                 <label
                   key={key}
                   className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2"
                 >
+=======
+                <label key={key} className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
+>>>>>>> origin/main
                   <span className="text-[11px] font-medium">{label}</span>
                   <input
                     type="checkbox"
@@ -150,6 +175,7 @@ export function LevelsEditor() {
                 </label>
               ))}
               <label className="block">
+<<<<<<< HEAD
                 <span className="text-[10px] font-medium text-muted-foreground">
                   Benefits (one per line)
                 </span>
@@ -159,6 +185,13 @@ export function LevelsEditor() {
                   onChange={(e) =>
                     update(lv.level, "benefits", e.target.value.split("\n").filter(Boolean))
                   }
+=======
+                <span className="text-[10px] font-medium text-muted-foreground">Benefits (one per line)</span>
+                <textarea
+                  rows={3}
+                  value={((lv["benefits"] as string[]) ?? []).join("\n")}
+                  onChange={(e) => update(lv.level, "benefits", e.target.value.split("\n").filter(Boolean))}
+>>>>>>> origin/main
                   className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2 text-[11px] outline-none focus:border-gold/60"
                 />
               </label>

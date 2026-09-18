@@ -11,6 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { naira } from "@/lib/format";
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
 export const Route = createFileRoute("/register")({
   head: () => ({
     meta: [
@@ -32,6 +36,7 @@ export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
+<<<<<<< HEAD
 const schema = z.object({
   name: z.string().trim().min(2, "Enter your name").max(120),
   username: z
@@ -49,6 +54,39 @@ const schema = z.object({
     .regex(/[0-9]/, "Include at least one number"),
   terms: z.literal(true, { errorMap: () => ({ message: "You must accept the terms" }) }),
 });
+=======
+const schema = z
+  .object({
+    first_name: z.string().trim().min(2, "Enter your first name").max(60),
+    other_names: z.string().trim().min(2, "Enter your other names").max(80),
+    username: z
+      .string()
+      .trim()
+      .min(3, "Username must be at least 3 characters")
+      .max(24, "Username must be 24 characters or fewer")
+      .regex(/^[a-zA-Z0-9_]+$/, "Use letters, numbers and underscores only"),
+    email: z.string().trim().email("Enter a valid email address").max(255),
+    phone: z
+      .string()
+      .trim()
+      .min(7, "Enter a valid phone number")
+      .max(20)
+      .regex(/^[0-9+\-\s()]+$/, "Enter a valid phone number"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(128)
+      .regex(/[a-zA-Z]/, "Include at least one letter")
+      .regex(/[0-9]/, "Include at least one number"),
+    confirm_password: z.string(),
+    referral_code: z.string().trim().max(20).optional().or(z.literal("")),
+    terms: z.literal(true, { errorMap: () => ({ message: "You must accept the terms" }) }),
+  })
+  .refine((v) => v.password === v.confirm_password, {
+    path: ["confirm_password"],
+    message: "Passwords do not match",
+  });
+>>>>>>> origin/main
 
 function Field({
   label,
@@ -68,6 +106,10 @@ function Field({
   );
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
 function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -84,9 +126,13 @@ function RegisterPage() {
         .maybeSingle();
       if (active) setWelcomeBonus(Number(data?.welcome_bonus ?? 0));
     })();
+<<<<<<< HEAD
     return () => {
       active = false;
     };
+=======
+    return () => { active = false; };
+>>>>>>> origin/main
   }, []);
 
   async function continueWithGoogle() {
@@ -105,10 +151,21 @@ function RegisterPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const raw = {
+<<<<<<< HEAD
       name: String(form.get("name") ?? ""),
       username: String(form.get("username") ?? ""),
       email: String(form.get("email") ?? ""),
       password: String(form.get("password") ?? ""),
+=======
+      first_name: String(form.get("first_name") ?? ""),
+      other_names: String(form.get("other_names") ?? ""),
+      username: String(form.get("username") ?? ""),
+      email: String(form.get("email") ?? ""),
+      phone: String(form.get("phone") ?? ""),
+      password: String(form.get("password") ?? ""),
+      confirm_password: String(form.get("confirm_password") ?? ""),
+      referral_code: String(form.get("referral_code") ?? ""),
+>>>>>>> origin/main
       terms: form.get("terms") === "on",
     };
 
@@ -132,11 +189,19 @@ function RegisterPage() {
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
+<<<<<<< HEAD
             first_name: parsed.data.name,
             other_names: "",
             username: parsed.data.username,
             phone: "",
             referral_code: "",
+=======
+            first_name: parsed.data.first_name,
+            other_names: parsed.data.other_names,
+            username: parsed.data.username,
+            phone: parsed.data.phone,
+            referral_code: (parsed.data.referral_code ?? "").toUpperCase(),
+>>>>>>> origin/main
           },
         },
       });
@@ -161,6 +226,10 @@ function RegisterPage() {
         toast.success("Account created. Check your email to verify your account, then log in.");
         navigate({ to: "/login", replace: true });
       }
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
     } finally {
       setLoading(false);
     }
@@ -192,6 +261,7 @@ function RegisterPage() {
         <Chrome className="h-4 w-4" /> Continue with Google
       </button>
       <div className="flex items-center gap-3 py-1 text-[10px] text-muted-foreground">
+<<<<<<< HEAD
         <span className="h-px flex-1 bg-border" />
         <span>OR</span>
         <span className="h-px flex-1 bg-border" />
@@ -200,6 +270,19 @@ function RegisterPage() {
         <Field label="Name" error={errors.name}>
           <Input name="name" autoComplete="name" placeholder="Meshach Daniel" />
         </Field>
+=======
+        <span className="h-px flex-1 bg-border" /><span>OR</span><span className="h-px flex-1 bg-border" />
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="First name" error={errors.first_name}>
+            <Input name="first_name" autoComplete="given-name" placeholder="Meshach" />
+          </Field>
+          <Field label="Other names" error={errors.other_names}>
+            <Input name="other_names" autoComplete="family-name" placeholder="Daniel" />
+          </Field>
+        </div>
+>>>>>>> origin/main
 
         <Field label="Username" error={errors.username}>
           <Input name="username" autoComplete="username" placeholder="meshach_d" />
@@ -209,6 +292,13 @@ function RegisterPage() {
           <Input name="email" type="email" autoComplete="email" placeholder="you@example.com" />
         </Field>
 
+<<<<<<< HEAD
+=======
+        <Field label="Phone number" error={errors.phone}>
+          <Input name="phone" type="tel" autoComplete="tel" placeholder="+234 800 000 0000" />
+        </Field>
+
+>>>>>>> origin/main
         <Field label="Password" error={errors.password}>
           <div className="relative">
             <Input
@@ -229,6 +319,22 @@ function RegisterPage() {
           </div>
         </Field>
 
+<<<<<<< HEAD
+=======
+        <Field label="Confirm password" error={errors.confirm_password}>
+          <Input
+            name="confirm_password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="Re-enter your password"
+          />
+        </Field>
+
+        <Field label="Referral code (optional)" error={errors.referral_code}>
+          <Input name="referral_code" placeholder="EX1A2B3C" className="uppercase" />
+        </Field>
+
+>>>>>>> origin/main
         <label className="flex items-start gap-2.5 text-xs leading-relaxed text-muted-foreground">
           <Checkbox name="terms" className="mt-0.5" />
           <span>

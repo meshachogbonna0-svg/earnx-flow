@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
+<<<<<<< HEAD
+=======
+import { naira } from "@/lib/format";
+>>>>>>> origin/main
 
 type Question = {
   question: string;
@@ -77,8 +81,12 @@ const QUESTION_OPTIONS: Array<{ match: RegExp; type: Question["type"]; options: 
     ],
   },
   {
+<<<<<<< HEAD
     match:
       /how much do you hope to earn|hope to earn.*monthly|expected.*earn.*monthly|desired.*income/i,
+=======
+    match: /how much do you hope to earn|hope to earn.*monthly|expected.*earn.*monthly|desired.*income/i,
+>>>>>>> origin/main
     type: "single",
     options: [
       "I would like to earn less than ₦50,000 per month",
@@ -103,8 +111,12 @@ const QUESTION_OPTIONS: Array<{ match: RegExp; type: Question["type"]; options: 
     ],
   },
   {
+<<<<<<< HEAD
     match:
       /how often do you plan to withdraw|withdraw.*often|withdrawal frequency|how frequently.*withdraw/i,
+=======
+    match: /how often do you plan to withdraw|withdraw.*often|withdrawal frequency|how frequently.*withdraw/i,
+>>>>>>> origin/main
     type: "single",
     options: [
       "I plan to withdraw whenever I reach my available withdrawal limit",
@@ -178,6 +190,7 @@ const QUESTION_OPTIONS: Array<{ match: RegExp; type: Question["type"]; options: 
   {
     match: /^country$|which country|country of residence/i,
     type: "dropdown",
+<<<<<<< HEAD
     options: [
       "Nigeria",
       "Ghana",
@@ -188,11 +201,15 @@ const QUESTION_OPTIONS: Array<{ match: RegExp; type: Question["type"]; options: 
       "Canada",
       "Other",
     ],
+=======
+    options: ["Nigeria", "Ghana", "Kenya", "South Africa", "United Kingdom", "United States", "Canada", "Other"],
+>>>>>>> origin/main
   },
   {
     match: /state\/province|state or province|^state$/i,
     type: "dropdown",
     options: [
+<<<<<<< HEAD
       "Abia",
       "Adamawa",
       "Akwa Ibom",
@@ -231,6 +248,12 @@ const QUESTION_OPTIONS: Array<{ match: RegExp; type: Question["type"]; options: 
       "Zamfara",
       "FCT Abuja",
       "Other",
+=======
+      "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta",
+      "Ebonyi","Edo","Ekiti","Enugu","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi",
+      "Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers",
+      "Sokoto","Taraba","Yobe","Zamfara","FCT Abuja","Other",
+>>>>>>> origin/main
     ],
   },
 ];
@@ -252,10 +275,14 @@ export const Route = createFileRoute("/questionnaire")({
   head: () => ({
     meta: [
       { title: "Welcome Questionnaire — EarnX-Finance" },
+<<<<<<< HEAD
       {
         name: "description",
         content: "Complete your welcome questionnaire to unlock your welcome bonus.",
       },
+=======
+      { name: "description", content: "Complete your welcome questionnaire to unlock your welcome bonus." },
+>>>>>>> origin/main
     ],
   }),
   component: QuestionnairePage,
@@ -268,6 +295,10 @@ function QuestionnairePage() {
   const [q, setQ] = useState<Questionnaire | null>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
+<<<<<<< HEAD
+=======
+  const [creditedAmount, setCreditedAmount] = useState(0);
+>>>>>>> origin/main
 
   useEffect(() => {
     (async () => {
@@ -312,9 +343,13 @@ function QuestionnairePage() {
       <AppPage title="Welcome to EarnX-Finance">
         <div className="rounded-2xl border border-gold/30 bg-card p-6 text-center">
           <Sparkles className="mx-auto h-8 w-8 text-gold" />
+<<<<<<< HEAD
           <p className="mt-3 text-sm font-semibold">
             Your welcome bonus questionnaire is being prepared.
           </p>
+=======
+          <p className="mt-3 text-sm font-semibold">Your welcome bonus questionnaire is being prepared.</p>
+>>>>>>> origin/main
         </div>
       </AppPage>
     );
@@ -322,8 +357,12 @@ function QuestionnairePage() {
 
   const current = q.questions[index];
   const currentAnswer = answers[index] ?? "";
+<<<<<<< HEAD
   const setAnswer = (value: string) =>
     setAnswers((prev) => prev.map((v, i) => (i === index ? value : v)));
+=======
+  const setAnswer = (value: string) => setAnswers((prev) => prev.map((v, i) => (i === index ? value : v)));
+>>>>>>> origin/main
   const isLast = index === q.questions.length - 1;
 
   const chooseSingleAnswer = (value: string) => {
@@ -354,10 +393,14 @@ function QuestionnairePage() {
     setSaving(true);
     const { data, error } = await supabase.rpc("complete_questionnaire", {
       _questionnaire_id: q.id,
+<<<<<<< HEAD
       _answers: submittedAnswers.map((answer, i) => ({
         question: q.questions[i]?.question ?? "",
         answer,
       })),
+=======
+      _answers: submittedAnswers.map((answer, i) => ({ question: q.questions[i]?.question ?? "", answer })),
+>>>>>>> origin/main
     });
     if (error) {
       setSaving(false);
@@ -380,12 +423,20 @@ function QuestionnairePage() {
       );
       return;
     }
+<<<<<<< HEAD
     toast.success("Congratulations! Your welcome bonus has been credited.");
     navigate({ to: "/dashboard", replace: true });
+=======
+    const credited = Number(result.total_reward ?? result.welcome_bonus ?? result.reward ?? 0);
+    setCreditedAmount(credited);
+    toast.success("Congratulations! Your welcome bonus has been credited.");
+    navigate({ to: "/congratulations", search: { amount: String(credited), kind: "questionnaire" }, replace: true });
+>>>>>>> origin/main
   };
 
   return (
     <>
+<<<<<<< HEAD
       <AppPage
         title="Welcome to EarnX-Finance"
         subtitle="Complete this short questionnaire to unlock your welcome bonus."
@@ -512,6 +563,106 @@ function QuestionnairePage() {
           Your welcome reward is credited only after the questionnaire is completed.
         </p>
       </AppPage>
+=======
+
+    <AppPage title="Welcome to EarnX-Finance" subtitle="Complete this short questionnaire to unlock your welcome bonus.">
+      <section className="rounded-3xl border border-gold/30 bg-gradient-to-br from-navy via-card to-navy-deep p-5 shadow-soft">
+        <div className="flex items-center justify-between gap-3">
+          <span className="rounded-full bg-gold/10 px-3 py-1 text-[10px] font-bold text-gold">
+            Question {index + 1} of {q.questions.length}
+          </span>
+          <span className="text-[10px] font-semibold text-muted-foreground">
+            {Math.round(((index + 1) / q.questions.length) * 100)}%
+          </span>
+        </div>
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
+          <div className="h-full rounded-full bg-gold-gradient transition-all" style={{ width: `${((index + 1) / q.questions.length) * 100}%` }} />
+        </div>
+        <h2 className="mt-7 text-lg font-extrabold leading-snug">{current.question}</h2>
+
+        {["single", "dropdown", "boolean", "multiple"].includes(current.type ?? "single") ? (
+          <div className="mt-5 space-y-2">
+            {(current.type === "boolean" ? ["Yes", "No"] : current.options ?? []).map((option) => {
+              const selected = current.type === "multiple"
+                ? (() => { try { return (JSON.parse(currentAnswer || "[]") as string[]).includes(option); } catch { return false; } })()
+                : currentAnswer === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    if (current.type === "multiple") {
+                      let selectedOptions: string[] = [];
+                      try { selectedOptions = JSON.parse(currentAnswer || "[]"); } catch { selectedOptions = []; }
+                      const next = selectedOptions.includes(option)
+                        ? selectedOptions.filter((v) => v !== option)
+                        : [...selectedOptions, option];
+                      setAnswer(JSON.stringify(next));
+                    } else {
+                      chooseSingleAnswer(option);
+                    }
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left text-sm transition ${
+                    selected ? "border-gold bg-gold/10 text-gold" : "border-border bg-background/40 hover:border-gold/30"
+                  }`}
+                >
+                  <span className={`grid h-5 w-5 place-items-center rounded-full border ${selected ? "border-gold bg-gold text-gold-foreground" : "border-muted-foreground/40"}`}>
+                    {selected && <CheckCircle2 className="h-4 w-4" />}
+                  </span>
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <textarea
+            value={currentAnswer}
+            onChange={(e) => setAnswer(e.target.value)}
+            placeholder="Type your answer…"
+            rows={current.type === "paragraph" ? 6 : 3}
+            className="mt-5 w-full rounded-2xl border border-border bg-background/50 p-3.5 text-sm outline-none transition focus:border-gold/60"
+          />
+        )}
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            disabled={index === 0}
+            onClick={() => setIndex((v) => Math.max(0, v - 1))}
+            className="inline-flex items-center gap-1 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" /> Back
+          </button>
+          {isLast ? (
+            ["single", "dropdown", "boolean"].includes(current.type ?? "single") ? (
+              <span className="text-right text-[10px] font-semibold text-muted-foreground">Select an answer to finish automatically</span>
+            ) : (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void finish()}
+                className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground disabled:opacity-60"
+              >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {saving ? "Crediting bonus…" : "Finish & claim bonus"}
+              </button>
+            )
+          ) : (
+            ["single", "dropdown", "boolean"].includes(current.type ?? "single") ? (
+              <span className="text-right text-[10px] font-semibold text-muted-foreground">Choose an answer to continue</span>
+            ) : (
+              <button type="button" onClick={next} className="inline-flex items-center gap-1 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground">
+                Next <ChevronRight className="h-4 w-4" />
+              </button>
+            )
+          )}
+        </div>
+      </section>
+      <p className="text-center text-[10px] text-muted-foreground">
+        Your welcome reward is credited only after the questionnaire is completed.
+      </p>
+    </AppPage>
+>>>>>>> origin/main
     </>
   );
 }

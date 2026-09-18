@@ -1,6 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+<<<<<<< HEAD
 import { BatteryCharging, Check, Lock, ShieldCheck, TrendingUp, Zap } from "lucide-react";
+=======
+import { BatteryCharging, Check, Lock, TrendingUp, Zap } from "lucide-react";
+>>>>>>> origin/main
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
 import { naira } from "@/lib/format";
@@ -29,7 +33,10 @@ type Level = {
   level: number;
   name: string;
   upgrade_price: number;
+<<<<<<< HEAD
   activation_fee: number;
+=======
+>>>>>>> origin/main
   reward_per_tap: number;
   battery_capacity: number;
   daily_tap_limit: number;
@@ -46,7 +53,10 @@ function UpgradePage() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [current, setCurrent] = useState(0);
   const [balance, setBalance] = useState(0);
+<<<<<<< HEAD
   const [activation, setActivation] = useState("not_activated");
+=======
+>>>>>>> origin/main
   const [pending, setPending] = useState<Pending>(null);
   const [popup, setPopup] = useState<string | null>(null);
 
@@ -58,7 +68,11 @@ function UpgradePage() {
     }
     const [{ data: l }, { data: p }, { data: req }] = await Promise.all([
       supabase.from("levels").select("*").eq("enabled", true).order("level"),
+<<<<<<< HEAD
       supabase.from("profiles").select("level, balance, activation").eq("id", auth.user.id).maybeSingle(),
+=======
+      supabase.from("profiles").select("level, balance").eq("id", auth.user.id).maybeSingle(),
+>>>>>>> origin/main
       supabase
         .from("upgrade_requests")
         .select("to_level, created_at")
@@ -71,7 +85,10 @@ function UpgradePage() {
     setLevels((l as Level[]) ?? []);
     setCurrent((p as { level: number })?.level ?? 0);
     setBalance((p as { balance: number })?.balance ?? 0);
+<<<<<<< HEAD
     setActivation((p as { activation?: string })?.activation ?? "not_activated");
+=======
+>>>>>>> origin/main
     setPending((req as Pending) ?? null);
     setLoading(false);
   };
@@ -137,9 +154,12 @@ function UpgradePage() {
                   <p className="font-display text-lg font-extrabold text-gold">
                     {lv.upgrade_price > 0 ? naira(lv.upgrade_price) : "Free"}
                   </p>
+<<<<<<< HEAD
                   <p className="mt-0.5 text-[10px] font-semibold text-royal">
                     Activation: {lv.activation_fee > 0 ? naira(lv.activation_fee) : "Not configured"}
                   </p>
+=======
+>>>>>>> origin/main
                   {isCurrent && <p className="text-[10px] font-semibold text-success">Current plan</p>}
                   {isNext && !pending && <p className="text-[10px] font-semibold text-royal">Next step</p>}
                 </div>
@@ -164,6 +184,7 @@ function UpgradePage() {
                 />
               </div>
 
+<<<<<<< HEAD
               <div
                 className={cn(
                   "mt-3 flex items-start gap-2 rounded-xl border p-2.5 text-[10px]",
@@ -184,6 +205,8 @@ function UpgradePage() {
                 </span>
               </div>
 
+=======
+>>>>>>> origin/main
               {lv.benefits?.length > 0 && (
                 <ul className="mt-3 space-y-1">
                   {lv.benefits.map((b) => (
