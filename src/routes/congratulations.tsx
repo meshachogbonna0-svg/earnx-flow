@@ -39,7 +39,7 @@ function CongratulationsPage() {
       : "Your request has been received and is being processed.";
 
   return (
-    <AppPage title="Success" subtitle="EarnX-Finance" hideBottomNav>
+    <AppPage title="Success" subtitle="EarnX-Finance" nav={false}>
       <section className="animate-scale-in relative flex flex-col items-center rounded-[2rem] border border-border bg-card p-8 text-center shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
 
