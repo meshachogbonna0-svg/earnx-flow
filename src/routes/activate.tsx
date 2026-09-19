@@ -6,7 +6,7 @@ import { AppPage, PageLoader } from "@/components/dashboard/app-page";
 import { naira } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/upgrade")({
+export const Route = createFileRoute("/activate")({
   ssr: false,
   head: () => ({
     meta: [
