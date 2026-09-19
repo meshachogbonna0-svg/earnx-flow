@@ -107,6 +107,7 @@ function QuestionnairePage() {
     );
   }
 
+  const active = questionnaire;
   const current = questionnaire.questions[index];
   const answer = answers[index] ?? "";
   const isLast = index === questionnaire.questions.length - 1;
