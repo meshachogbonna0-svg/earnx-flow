@@ -107,6 +107,7 @@ function QuestionnairePage() {
     );
   }
 
+  const active = questionnaire;
   const current = questionnaire.questions[index];
   const answer = answers[index] ?? "";
   const isLast = index === questionnaire.questions.length - 1;
@@ -119,14 +120,14 @@ function QuestionnairePage() {
 
   async function finish(submittedAnswers = answers) {
     if (saving) return;
-    if (questionnaire.questions.some((question, i) => question.required !== false && !String(submittedAnswers[i] ?? "").trim())) {
+    if (active.questions.some((question, i) => question.required !== false && !String(submittedAnswers[i] ?? "").trim())) {
       toast.error("Please answer every required question.");
       return;
     }
     setSaving(true);
     const { data, error } = await supabase.rpc("complete_questionnaire", {
-      _questionnaire_id: questionnaire.id,
-      _answers: submittedAnswers.map((value, i) => ({ question: questionnaire.questions[i]?.question ?? "", answer: value })),
+      _questionnaire_id: active.id,
+      _answers: submittedAnswers.map((value, i) => ({ question: active.questions[i]?.question ?? "", answer: value })),
     });
     if (error || !(data as { ok?: boolean } | null)?.ok) {
       setSaving(false);

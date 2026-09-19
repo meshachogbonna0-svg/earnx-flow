@@ -17,7 +17,7 @@ import { ReceiptUpload } from "@/components/security/receipt-upload";
 import { naira } from "@/lib/format";
 import { RequestProcessingCard } from "@/components/dashboard/request-processing";
 
-export const Route = createFileRoute("/activate")({
+export const Route = createFileRoute("/upgrade")({
   ssr: false,
   head: () => ({
     meta: [
