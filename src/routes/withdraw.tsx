@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Landmark, Loader2 } from "lucide-react";
+import { Landmark, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
@@ -45,9 +45,17 @@ type Withdrawal = {
   created_at: string;
 };
 
+type LevelRow = {
+  level: number;
+  name: string;
+  min_withdrawal: number;
+  max_withdrawal: number;
+};
+
 type WithdrawResult = {
   ok?: boolean;
   reason?: string;
+  message?: string;
   id?: string;
   reference?: string;
   min?: number;
@@ -59,34 +67,45 @@ type WithdrawResult = {
   processing_time?: string;
 };
 
-/** Exact, user-facing message for every rejection reason returned by the backend. */
-const messageFor = (res: WithdrawResult) => {
+const FALLBACK_MESSAGE = "Your withdrawal could not be processed. Please try again later.";
+
+/** Build the exact user-facing message for each rejection reason and level. */
+function messageFor(res: WithdrawResult, currentName: string, nextName: string | null) {
+  if (res.message) return res.message;
+
   switch (res.reason) {
     case "disabled":
-      return "Withdrawals are temporarily unavailable. Please try again later.";
+      return "Withdrawals are temporarily disabled. Please try again later.";
+    case "unauthenticated":
+      return "Please sign in again to continue.";
+    case "no_profile":
+      return "Your profile could not be loaded. Please contact support.";
     case "not_activated":
-      return "Activate your account before you can withdraw.";
+      return `Please activate your ${currentName} level before you can withdraw.`;
     case "account_restricted":
-      return "Your account is restricted. Please contact support.";
+      return "Your account is currently restricted. Please contact support.";
     case "below_minimum":
-      return `Minimum withdrawal is ${naira(res.min)}. Please enter a higher amount.`;
+      return "The withdrawal amount is below the minimum allowed amount.";
     case "above_maximum":
-      return `Please upgrade your account to the next level in order to continue this withdrawal. Your current maximum is ${naira(res.max)}.`;
+      return nextName
+        ? `The withdrawal amount exceeds the maximum allowed for your level. Please upgrade to ${nextName} to withdraw more.`
+        : "The withdrawal amount exceeds the maximum allowed for your level.";
     case "insufficient_balance":
-      return `Insufficient balance. You currently have ${naira(res.balance)} available.`;
+      return "Your balance is insufficient for this withdrawal.";
     case "daily_limit":
-      return `Daily withdrawal limit is ${naira(res.limit)}. You have ${naira(res.remaining)} left today.`;
+      return "You have reached the daily withdrawal amount limit.";
     case "daily_count_limit":
-      return `You can only make ${res.limit} withdrawal${res.limit === 1 ? "" : "s"} per day. Try again tomorrow.`;
+      return "You have reached the maximum number of withdrawals allowed today.";
     case "missing_bank_details":
-      return "Please fill in your bank, account number and account name.";
+      return "Please provide valid bank details before withdrawing.";
     case "invalid_amount":
-      return "Enter a valid withdrawal amount.";
+      return "Please enter a valid withdrawal amount.";
+    case "duplicate":
+      return "A similar withdrawal request was recently submitted.";
     default:
-      return "Withdrawal could not be processed. Please try again.";
+      return FALLBACK_MESSAGE;
   }
-};
-
+}
 
 function WithdrawPage() {
   const navigate = useNavigate();
@@ -96,6 +115,7 @@ function WithdrawPage() {
   const [pending, setPending] = useState(0);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [history, setHistory] = useState<Withdrawal[]>([]);
+  const [levels, setLevels] = useState<LevelRow[]>([]);
   const [effectiveMin, setEffectiveMin] = useState(5000);
   const [effectiveMax, setEffectiveMax] = useState(0);
   const [lastSubmitted, setLastSubmitted] = useState<Withdrawal | null>(null);
@@ -103,6 +123,7 @@ function WithdrawPage() {
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -110,7 +131,7 @@ function WithdrawPage() {
       navigate({ to: "/login", replace: true });
       return;
     }
-    const [{ data: p }, { data: s }, { data: w }] = await Promise.all([
+    const [{ data: p }, { data: s }, { data: w }, { data: lvls }] = await Promise.all([
       supabase
         .from("profiles")
         .select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level")
@@ -123,6 +144,7 @@ function WithdrawPage() {
         .eq("user_id", auth.user.id)
         .order("created_at", { ascending: false })
         .limit(10),
+      supabase.from("levels").select("level, name, min_withdrawal, max_withdrawal").order("level"),
     ]);
     const prof = p as {
       balance: number;
@@ -130,7 +152,10 @@ function WithdrawPage() {
       bank_name: string | null;
       bank_account_number: string | null;
       bank_account_name: string | null;
+      level: number;
     } | null;
+    const allLevels = (lvls as LevelRow[]) ?? [];
+    setLevels(allLevels);
     setBalance(prof?.balance ?? 0);
     setPending(prof?.pending_balance ?? 0);
     setBankName(prof?.bank_name ?? "");
@@ -138,10 +163,10 @@ function WithdrawPage() {
     setAccountName(prof?.bank_account_name ?? "");
     setSettings(s as Settings);
     setHistory((w as Withdrawal[]) ?? []);
-    const level = Number((prof as { level?: number } | null)?.level ?? 0);
-    const { data: lv } = await supabase.from("levels").select("min_withdrawal, max_withdrawal").eq("level", level).maybeSingle();
-    const lmin = Number((lv as { min_withdrawal?: number } | null)?.min_withdrawal ?? 0);
-    const lmax = Number((lv as { max_withdrawal?: number } | null)?.max_withdrawal ?? 0);
+    const level = prof?.level ?? 0;
+    const current = allLevels.find((l) => l.level === level);
+    const lmin = Number(current?.min_withdrawal ?? 0);
+    const lmax = Number(current?.max_withdrawal ?? 0);
     setEffectiveMin(lmin > 0 ? lmin : Number((s as Settings)?.min_withdrawal ?? 5000));
     setEffectiveMax(lmax > 0 ? lmax : Number((s as Settings)?.max_withdrawal ?? 0));
     setLoading(false);
@@ -154,6 +179,7 @@ function WithdrawPage() {
   const submit = async () => {
     if (busy) return;
     setBusy(true);
+    setError(null);
     const { data, error } = await supabase.rpc("request_withdrawal", {
       _amount: Number(amount),
       _bank_name: bankName,
@@ -165,15 +191,32 @@ function WithdrawPage() {
       setBusy(false);
       return toast.error("Withdrawal failed", { description: "Please check your connection and try again." });
     }
+
+    const current = levels.find((l) => l.level === currentLevel);
+    const currentName = current?.name ?? `Level ${currentLevel}`;
+    const next = levels.find((l) => l.level === currentLevel + 1);
+    const nextName = next?.name ?? null;
+
     if (!res.ok) {
+      const msg = messageFor(res, currentName, nextName);
+      setError(msg);
       setBusy(false);
-      return toast.error(messageFor(res));
+      return toast.error(msg);
     }
+
     toast.success("Withdrawal request submitted", {
       description: "Your request is now being processed by Admin.",
     });
-    const submitted: Withdrawal = { id: String(res.id ?? ""), reference: String(res.reference ?? ""), amount: Number(amount), status: "processing", bank_name: bankName, created_at: new Date().toISOString() };
+    const submitted: Withdrawal = {
+      id: String(res.id ?? ""),
+      reference: String(res.reference ?? ""),
+      amount: Number(amount),
+      status: "processing",
+      bank_name: bankName,
+      created_at: new Date().toISOString(),
+    };
     setAmount("");
+    setError(null);
     setLastSubmitted(submitted);
     navigate({ to: "/withdrawal-processing", replace: true });
   };
@@ -193,7 +236,6 @@ function WithdrawPage() {
         </Link>
       }
     >
-
       <section className="animate-fade-up rounded-2xl border border-gold/30 bg-gradient-to-br from-navy via-card to-navy-deep p-4">
         <p className="text-[10px] tracking-[0.25em] text-muted-foreground">AVAILABLE BALANCE</p>
         <p className="mt-1 font-display text-2xl font-extrabold">{naira(balance)}</p>
@@ -214,12 +256,23 @@ function WithdrawPage() {
         <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
           <Landmark className="h-3 w-3" /> PAYOUT DETAILS
         </p>
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-[11px] leading-relaxed text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
         <label className="block">
           <span className="text-[11px] font-medium text-muted-foreground">Amount (₦)</span>
           <input
             inputMode="decimal"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              if (error) setError(null);
+            }}
             placeholder={`Min ${naira(effectiveMin)}${effectiveMax > 0 ? ` · Max ${naira(effectiveMax)}` : ""}`}
             className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-gold/60"
           />
@@ -230,7 +283,10 @@ function WithdrawPage() {
             <SearchableSelect
               id="withdraw-bank"
               value={bankName}
-              onValueChange={setBankName}
+              onValueChange={(v) => {
+                setBankName(v);
+                if (error) setError(null);
+              }}
               options={(settings?.supported_banks ?? []).map((b) => ({ value: b, label: b }))}
               placeholder="Select your bank"
               searchPlaceholder="Search banks…"
@@ -242,7 +298,10 @@ function WithdrawPage() {
           <input
             inputMode="numeric"
             value={accountNumber}
-            onChange={(e) => setAccountNumber(e.target.value)}
+            onChange={(e) => {
+              setAccountNumber(e.target.value);
+              if (error) setError(null);
+            }}
             className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-xs outline-none transition focus:border-gold/60"
           />
         </label>
@@ -250,7 +309,10 @@ function WithdrawPage() {
           <span className="text-[11px] font-medium text-muted-foreground">Account name</span>
           <input
             value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
+            onChange={(e) => {
+              setAccountName(e.target.value);
+              if (error) setError(null);
+            }}
             className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-xs outline-none transition focus:border-gold/60"
           />
         </label>

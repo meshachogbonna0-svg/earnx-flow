@@ -79,6 +79,8 @@ function UpgradeLevelPage() {
   const [reference, setReference] = useState("");
   const [proofUrl, setProofUrl] = useState("");
   const [pending, setPending] = useState(false);
+  const [latestStatus, setLatestStatus] = useState<string>("");
+  const [latestNote, setLatestNote] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -88,7 +90,7 @@ function UpgradeLevelPage() {
         supabase.from("levels").select("*").order("level"),
         supabase.from("profiles").select("level, balance, first_name, other_names").eq("id", auth.user.id).maybeSingle(),
         supabase.from("platform_settings").select("bank_name, account_name, account_number, security_notice, anti_scam_reminder").maybeSingle(),
-        supabase.from("upgrade_requests" as never).select("id, status").eq("user_id", auth.user.id).eq("status", "pending"),
+        supabase.from("upgrade_requests" as never).select("id, status, admin_note").eq("user_id", auth.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
       const all = (levels as Level[]) ?? [];
       const prof = p as { level: number; balance: number; first_name: string; other_names: string } | null;
@@ -99,7 +101,10 @@ function UpgradeLevelPage() {
       setBalance(prof?.balance ?? 0);
       setPayerName(`${prof?.first_name ?? ""} ${prof?.other_names ?? ""}`.trim());
       setSettings((s as Settings) ?? null);
-      setPending((((reqs as unknown[]) ?? []).length ?? 0) > 0);
+      const latest = reqs as { status: string; admin_note: string | null } | null;
+      setLatestStatus(latest?.status ?? "");
+      setLatestNote(latest?.admin_note ?? null);
+      setPending(latest?.status === "pending");
       setLoading(false);
     })();
   }, [navigate, target]);
