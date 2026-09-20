@@ -159,47 +159,49 @@ function ActivatePage() {
         </ul>
       </section>
 
-      {status === "activated" ? (
+      {status === "activated" && (
         <RequestProcessingCard kind="activation" status="activated" amount={level?.activation_fee ?? 0} detail="Your current level activation has been approved by Admin. Withdrawal eligibility can now be checked against the remaining limits." />
-      ) : status === "rejected" ? (
-        <RequestProcessingCard kind="activation" status="rejected" amount={level?.activation_fee ?? 0} detail="Your current level activation request was rejected by Admin. Review the reason below before submitting a new payment receipt." note={requestNote ?? undefined} />
-      ) : status === "pending" ? (
-        <RequestProcessingCard kind="activation" status="pending" amount={level?.activation_fee ?? 0} detail="Your bank-transfer receipt has been received. Admin is reviewing this level activation request." note={requestNote ?? undefined} />
-      ) : (
-        <>
-          <VerifiedPaymentCard settings={settings} />
-          <OfficialPaymentNotice text={settings?.security_notice} />
-
-          <section className="animate-fade-up space-y-3 rounded-2xl border border-border bg-card p-4">
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
-              CONFIRM YOUR PAYMENT
-            </p>
-            <Field label="Name used for payment" value={payerName} onChange={setPayerName} />
-            <Field
-              label="Transfer reference / session ID"
-              value={reference}
-              onChange={setReference}
-              placeholder="e.g. 1029384756"
-            />
-            <div>
-              <span className="text-[11px] font-medium text-muted-foreground">Payment receipt</span>
-              <div className="mt-1.5">
-                <ReceiptUpload value={proofUrl} onChange={setProofUrl} folder="activation" />
-              </div>
-            </div>
-
-            <PaymentConfirmCheckbox checked={confirmed} onChange={setConfirmed} />
-            <button
-              type="button"
-              disabled={busy || !confirmed || !payerName.trim() || !proofUrl}
-              onClick={submit}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient py-3 text-xs font-bold text-gold-foreground transition active:scale-[0.98] disabled:opacity-60"
-            >
-              {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Submit receipt
-            </button>
-          </section>
-        </>
       )}
+
+      {status === "rejected" && (
+        <RequestProcessingCard kind="activation" status="rejected" amount={level?.activation_fee ?? 0} detail="Your current level activation request was rejected by Admin. Review the reason below and submit a new payment receipt." note={requestNote ?? undefined} />
+      )}
+
+      {status === "pending" && (
+        <RequestProcessingCard kind="activation" status="pending" amount={level?.activation_fee ?? 0} detail="Your bank-transfer receipt has been received. Admin is reviewing this level activation request. You may submit a new receipt below if needed." note={requestNote ?? undefined} />
+      )}
+
+      <VerifiedPaymentCard settings={settings} />
+      <OfficialPaymentNotice text={settings?.security_notice} />
+
+      <section className="animate-fade-up space-y-3 rounded-2xl border border-border bg-card p-4">
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
+          CONFIRM YOUR PAYMENT
+        </p>
+        <Field label="Name used for payment" value={payerName} onChange={setPayerName} />
+        <Field
+          label="Transfer reference / session ID"
+          value={reference}
+          onChange={setReference}
+          placeholder="e.g. 1029384756"
+        />
+        <div>
+          <span className="text-[11px] font-medium text-muted-foreground">Payment receipt</span>
+          <div className="mt-1.5">
+            <ReceiptUpload value={proofUrl} onChange={setProofUrl} folder="activation" />
+          </div>
+        </div>
+
+        <PaymentConfirmCheckbox checked={confirmed} onChange={setConfirmed} />
+        <button
+          type="button"
+          disabled={busy || !confirmed || !payerName.trim() || !proofUrl}
+          onClick={submit}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient py-3 text-xs font-bold text-gold-foreground transition active:scale-[0.98] disabled:opacity-60"
+        >
+          {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} {status === "pending" ? "Submit new receipt" : "Submit receipt"}
+        </button>
+      </section>
 
       <AntiScamReminder text={settings?.anti_scam_reminder} />
       <ReportScamButton />
