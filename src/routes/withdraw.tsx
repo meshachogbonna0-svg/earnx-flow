@@ -176,12 +176,6 @@ function WithdrawPage() {
     void load();
   }, []);
 
-  const currentLevelName = () => {
-    const level = Number(settings ? (history.length ? undefined : undefined) : undefined);
-    const profLevel = levels.find((l) => l.level === level)?.name;
-    return profLevel || "current";
-  };
-
   const submit = async () => {
     if (busy) return;
     setBusy(true);
@@ -198,14 +192,13 @@ function WithdrawPage() {
       return toast.error("Withdrawal failed", { description: "Please check your connection and try again." });
     }
 
-    const currentLevel = levels.find((l) => l.min_withdrawal === effectiveMin && l.max_withdrawal === effectiveMax)?.name
-      ?? levels.find((l) => l.level === 1)?.name
-      ?? "current";
-    const currentIdx = levels.findIndex((l) => l.name === currentLevel);
-    const nextLevel = currentIdx >= 0 && currentIdx < levels.length - 1 ? levels[currentIdx + 1]?.name ?? null : null;
+    const current = levels.find((l) => l.level === currentLevel);
+    const currentName = current?.name ?? `Level ${currentLevel}`;
+    const next = levels.find((l) => l.level === currentLevel + 1);
+    const nextName = next?.name ?? null;
 
     if (!res.ok) {
-      const msg = messageFor(res, currentLevel, nextLevel);
+      const msg = messageFor(res, currentName, nextName);
       setError(msg);
       setBusy(false);
       return toast.error(msg);
