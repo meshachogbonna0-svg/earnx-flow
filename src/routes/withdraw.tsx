@@ -116,6 +116,7 @@ function WithdrawPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [history, setHistory] = useState<Withdrawal[]>([]);
   const [levels, setLevels] = useState<LevelRow[]>([]);
+  const [currentLevel, setCurrentLevel] = useState(0);
   const [effectiveMin, setEffectiveMin] = useState(5000);
   const [effectiveMax, setEffectiveMax] = useState(0);
   const [lastSubmitted, setLastSubmitted] = useState<Withdrawal | null>(null);
@@ -155,7 +156,9 @@ function WithdrawPage() {
       level: number;
     } | null;
     const allLevels = (lvls as LevelRow[]) ?? [];
+    const level = prof?.level ?? 0;
     setLevels(allLevels);
+    setCurrentLevel(level);
     setBalance(prof?.balance ?? 0);
     setPending(prof?.pending_balance ?? 0);
     setBankName(prof?.bank_name ?? "");
@@ -163,7 +166,6 @@ function WithdrawPage() {
     setAccountName(prof?.bank_account_name ?? "");
     setSettings(s as Settings);
     setHistory((w as Withdrawal[]) ?? []);
-    const level = prof?.level ?? 0;
     const current = allLevels.find((l) => l.level === level);
     const lmin = Number(current?.min_withdrawal ?? 0);
     const lmax = Number(current?.max_withdrawal ?? 0);
@@ -180,45 +182,62 @@ function WithdrawPage() {
     if (busy) return;
     setBusy(true);
     setError(null);
-    const { data, error } = await supabase.rpc("request_withdrawal", {
-      _amount: Number(amount),
-      _bank_name: bankName,
-      _account_number: accountNumber,
-      _account_name: accountName,
-    });
-    const res = (data ?? {}) as WithdrawResult;
-    if (error) {
+
+    try {
+      const rpcCall = supabase.rpc("request_withdrawal", {
+        _amount: Number(amount),
+        _bank_name: bankName,
+        _account_number: accountNumber,
+        _account_name: accountName,
+      });
+
+      const { data, error } = await Promise.race([
+        rpcCall,
+        new Promise<{ data: null; error: { message: string } }>((_, reject) =>
+          setTimeout(() => reject(new Error("Withdrawal request timed out. Please try again.")), 20000),
+        ),
+      ]);
+
+      const res = (data ?? {}) as WithdrawResult;
+      if (error) {
+        setBusy(false);
+        return toast.error("Withdrawal failed", { description: "Please check your connection and try again." });
+      }
+
+      const current = levels.find((l) => l.level === currentLevel);
+      const currentName = current?.name ?? `Level ${currentLevel}`;
+      const next = levels.find((l) => l.level === currentLevel + 1);
+      const nextName = next?.name ?? null;
+
+      if (!res.ok) {
+        const msg = messageFor(res, currentName, nextName);
+        setError(msg);
+        setBusy(false);
+        return toast.error(msg);
+      }
+
+      toast.success("Withdrawal request submitted", {
+        description: "Your request is now being processed by Admin.",
+      });
+      const submitted: Withdrawal = {
+        id: String(res.id ?? ""),
+        reference: String(res.reference ?? ""),
+        amount: Number(amount),
+        status: "processing",
+        bank_name: bankName,
+        created_at: new Date().toISOString(),
+      };
+      setAmount("");
+      setError(null);
+      setLastSubmitted(submitted);
+      navigate({ to: "/withdrawal-processing", replace: true });
+    } catch (requestError) {
+      console.error("request_withdrawal timed out", requestError);
       setBusy(false);
-      return toast.error("Withdrawal failed", { description: "Please check your connection and try again." });
+      return toast.error("Withdrawal request timed out", {
+        description: "Please check your connection and try again.",
+      });
     }
-
-    const current = levels.find((l) => l.level === currentLevel);
-    const currentName = current?.name ?? `Level ${currentLevel}`;
-    const next = levels.find((l) => l.level === currentLevel + 1);
-    const nextName = next?.name ?? null;
-
-    if (!res.ok) {
-      const msg = messageFor(res, currentName, nextName);
-      setError(msg);
-      setBusy(false);
-      return toast.error(msg);
-    }
-
-    toast.success("Withdrawal request submitted", {
-      description: "Your request is now being processed by Admin.",
-    });
-    const submitted: Withdrawal = {
-      id: String(res.id ?? ""),
-      reference: String(res.reference ?? ""),
-      amount: Number(amount),
-      status: "processing",
-      bank_name: bankName,
-      created_at: new Date().toISOString(),
-    };
-    setAmount("");
-    setError(null);
-    setLastSubmitted(submitted);
-    navigate({ to: "/withdrawal-processing", replace: true });
   };
 
   if (loading) return <PageLoader />;
@@ -249,7 +268,13 @@ function WithdrawPage() {
       )}
 
       {lastSubmitted && (
-        <RequestProcessingCard kind="withdrawal" status={lastSubmitted.status} amount={lastSubmitted.amount} reference={lastSubmitted.reference} detail="Your withdrawal request has been received and is awaiting Admin processing. Track it for approval, rejection or completion." />
+        <RequestProcessingCard
+          kind="withdrawal"
+          status={lastSubmitted.status}
+          amount={lastSubmitted.amount}
+          reference={lastSubmitted.reference}
+          detail="Your withdrawal request has been received and is awaiting review."
+        />
       )}
 
       <section className="animate-fade-up space-y-3 rounded-2xl border border-border bg-card p-4">
