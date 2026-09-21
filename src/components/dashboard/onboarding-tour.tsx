@@ -1,102 +1,127 @@
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { BadgeCheck, ChevronLeft, ChevronRight, Hand, ShieldCheck, Sparkles, WalletCards, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "earnx_dashboard_tour_v2";
 
 const steps = [
   {
-    label: "Dashboard",
-    title: "Welcome to EarnX-Finance",
-    body: "This is your home screen. Here you can see your balance, level, earnings, notifications and your main actions.",
+    icon: Sparkles,
+    label: "WELCOME",
+    title: "Your EarnX journey starts here",
+    body: "Your dashboard keeps your balance, earnings, level and recent activity together in one place.",
   },
   {
-    label: "Tap & Earn",
-    title: "Earn with Tap & Earn",
-    body: "Open Tap & Earn to use your available battery. Every tap uses your level's reward and battery settings.",
+    icon: WalletCards,
+    label: "YOUR WALLET",
+    title: "Follow every Naira you earn",
+    body: "Your total balance appears at the top. Use the eye button whenever you want to hide or reveal it.",
   },
   {
-    label: "Activation",
-    title: "Activate before withdrawal",
-    body: "You can earn before activation, but withdrawals stay locked until your one-time account activation is approved.",
+    icon: Hand,
+    label: "TAP & EARN",
+    title: "Tap. Recharge. Earn again.",
+    body: "Use the raised gold TAP button below to earn with your available battery and current level reward.",
   },
   {
-    label: "Upgrade",
-    title: "Upgrade when you're ready",
-    body: "Your balance stays with you when you upgrade. Each level has its own rewards, battery and withdrawal benefits.",
+    icon: ShieldCheck,
+    label: "ACTIVATE & GROW",
+    title: "Unlock withdrawals, then level up",
+    body: "Activate your current level before withdrawing. Upgrade one level at a time when you want higher benefits.",
   },
   {
-    label: "Withdraw",
-    title: "Withdraw your available balance",
-    body: "Once activated, request a bank withdrawal within your current level's minimum, maximum and daily limits.",
+    icon: BadgeCheck,
+    label: "YOU'RE READY",
+    title: "Everything is within reach",
+    body: "Use the quick actions for activation, upgrades and withdrawals. You can revisit every feature from the menu.",
   },
 ];
 
-export function OnboardingTour() {
+export function OnboardingTour({ firstName }: { firstName?: string }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (window.location.pathname !== "/dashboard") return;
     if (localStorage.getItem(STORAGE_KEY) === "done") return;
-    const timer = window.setTimeout(() => setOpen(true), 650);
+    const timer = window.setTimeout(() => setOpen(true), 800);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") finish();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
 
   if (!open) return null;
 
   const current = steps[step];
+  const StepIcon = current.icon;
   const finish = () => {
     localStorage.setItem(STORAGE_KEY, "done");
     setOpen(false);
   };
 
   return (
-    <div className="fixed inset-0 z-[180] bg-background/75 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-label="EarnX onboarding tour">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 18 }, (_, i) => (
-          <span
-            key={i}
-            className="absolute h-1.5 w-1.5 rounded-full bg-gold/70 animate-float"
-            style={{ left: `${(i * 37) % 100}%`, top: `${10 + ((i * 53) % 80)}%`, animationDelay: `${(i % 6) * 180}ms` }}
-          />
-        ))}
-      </div>
-
-      <div className="absolute inset-x-4 bottom-6 mx-auto max-w-md animate-fade-up rounded-3xl border border-gold/35 bg-gradient-to-br from-navy via-card to-navy-deep p-5 shadow-gold-glow">
-        <div className="flex items-center justify-between gap-3 border-b border-border/70 pb-3">
-          <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] text-gold">
-            <Sparkles className="h-4 w-4" /> EARNX TOUR · {step + 1}/{steps.length}
-          </div>
-          <button type="button" onClick={finish} aria-label="Close tour" className="grid h-8 w-8 place-items-center rounded-full border border-border text-muted-foreground">
+    <div className="fixed inset-0 z-[180] flex items-end justify-center bg-background/85 p-4 pb-5 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="relative w-full max-w-sm animate-fade-up overflow-hidden rounded-2xl border border-gold/40 bg-gradient-to-br from-navy via-card to-navy-deep p-5 shadow-gold-glow outline-none"
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gold-gradient" />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[10px] font-bold tracking-[0.2em] text-gold">
+            QUICK START · {step + 1} OF {steps.length}
+          </span>
+          <Button type="button" variant="ghost" size="icon" onClick={finish} aria-label="Close tutorial" className="h-8 w-8 rounded-full text-muted-foreground">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
-        <div className="mt-5">
-          <span className="rounded-full bg-gold/10 px-2.5 py-1 text-[10px] font-bold text-gold">{current.label}</span>
-          <h2 className="mt-3 text-xl font-extrabold">{current.title}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{current.body}</p>
+        <div className="mt-5 grid h-14 w-14 place-items-center rounded-2xl border border-gold/35 bg-gold/10 text-gold">
+          <StepIcon className="h-6 w-6" />
         </div>
 
-        <div className="mt-5 flex gap-1.5">
-          {steps.map((_, i) => <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-gold" : "bg-secondary"}`} />)}
+        <div className="mt-4 min-h-32">
+          <p className="text-[10px] font-bold tracking-[0.18em] text-gold">{current.label}</p>
+          <h2 id="tour-title" className="mt-2 text-xl font-extrabold">
+            {step === 0 && firstName ? `Welcome, ${firstName}` : current.title}
+          </h2>
+          {step === 0 && firstName && <p className="mt-1 text-xs font-semibold text-gold-soft">{current.title}</p>}
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">{current.body}</p>
+        </div>
+
+        <div className="mt-4 flex gap-1.5" aria-label={`Tutorial step ${step + 1} of ${steps.length}`}>
+          {steps.map((item, index) => (
+            <span key={item.label} className={cn("h-1 flex-1 rounded-full transition-colors", index <= step ? "bg-gold" : "bg-secondary")} />
+          ))}
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <button type="button" onClick={() => setStep((v) => Math.max(0, v - 1))} disabled={step === 0} className="inline-flex items-center gap-1 rounded-xl border border-border px-4 py-3 text-xs font-semibold disabled:opacity-35">
+          <Button type="button" variant="outline" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0} className="h-10 rounded-xl px-4 text-xs">
             <ChevronLeft className="h-4 w-4" /> Back
-          </button>
+          </Button>
           {step === steps.length - 1 ? (
-            <button type="button" onClick={finish} className="inline-flex items-center gap-1 rounded-xl bg-gold-gradient px-5 py-3 text-xs font-bold text-gold-foreground">
-              Get started
-            </button>
+            <Button type="button" onClick={finish} className="h-10 rounded-xl bg-gold-gradient px-5 text-xs font-bold text-gold-foreground">
+              Start earning
+            </Button>
           ) : (
-            <button type="button" onClick={() => setStep((v) => Math.min(steps.length - 1, v + 1))} className="inline-flex items-center gap-1 rounded-xl bg-gold-gradient px-5 py-3 text-xs font-bold text-gold-foreground">
+            <Button type="button" onClick={() => setStep((value) => Math.min(steps.length - 1, value + 1))} className="h-10 rounded-xl bg-gold-gradient px-5 text-xs font-bold text-gold-foreground">
               Next <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           )}
         </div>
-        <button type="button" onClick={finish} className="mt-3 w-full text-center text-[10px] font-semibold text-muted-foreground hover:text-foreground">Skip tour</button>
+        <Button type="button" variant="ghost" onClick={finish} className="mt-2 h-8 w-full text-[10px] font-semibold text-muted-foreground">
+          Skip tutorial
+        </Button>
       </div>
     </div>
   );

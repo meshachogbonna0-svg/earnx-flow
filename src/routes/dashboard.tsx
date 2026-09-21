@@ -26,6 +26,7 @@ const logoAsset = { url: "/earnx-eagle-logo.png" };
 import { Counter } from "@/components/motion/reveal";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { SidebarDrawer } from "@/components/dashboard/sidebar-drawer";
+import { OnboardingTour } from "@/components/dashboard/onboarding-tour";
 import { cn } from "@/lib/utils";
 
 const rpc = async (fn: string, args?: Record<string, unknown>) => {
@@ -518,6 +519,7 @@ function DashboardPage() {
       />
 
       <BottomNav active="home" />
+      <OnboardingTour firstName={first} />
 
       <Link to="/" className="sr-only">
         Back to home
