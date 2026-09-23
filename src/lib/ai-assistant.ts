@@ -1,11 +1,14 @@
-/**
- * Frontend-only placeholder for the assistant transport.
- *
- * Keep this function as the single boundary between the chat UI and future
- * assistant infrastructure. Later it can call a secure backend endpoint;
- * browser code must never contain an AI provider key.
- */
-export async function temporaryAssistantResponse(_message: string): Promise<string> {
-  await new Promise((resolve) => window.setTimeout(resolve, 700));
-  return "Thanks for your message. EarnX AI Assistant is being connected. Please try again shortly.";
+export async function requestAssistantResponse(message: string): Promise<string> {
+  const response = await fetch("/api/ai/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as { reply?: string; error?: string } | null;
+  if (!response.ok) {
+    throw new Error(payload?.error || "The AI assistant is temporarily unavailable.");
+  }
+  if (!payload?.reply) throw new Error("The AI assistant returned no response.");
+  return payload.reply;
 }
