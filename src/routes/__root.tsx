@@ -7,14 +7,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { PlatformMaintenanceBanner } from "@/components/platform-maintenance";
-import { AiAssistant } from "@/components/ai-assistant";
-import { supabase } from "@/integrations/supabase/client";
+import { FloatingParticles } from "@/components/floating-particles";
 
 function NotFoundComponent() {
   return (
@@ -80,33 +79,13 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function AuthenticatedAssistant() {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (mounted) { setAuthenticated(Boolean(data.session)); setChecked(true); }
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) { setAuthenticated(Boolean(session)); setChecked(true); }
-    });
-    return () => { mounted = false; listener.subscription.unsubscribe(); };
-  }, []);
-
-  // Keep the assistant out of public and admin surfaces; authenticated app routes share this root.
-  const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
-  return checked && authenticated && !isAdminRoute ? <AiAssistant /> : null;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
+      <FloatingParticles />
       <PlatformMaintenanceBanner />
       <Outlet />
-      <AuthenticatedAssistant />
       <Toaster />
     </QueryClientProvider>
   );

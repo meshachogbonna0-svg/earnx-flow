@@ -369,3 +369,28 @@
     }
   }
 }
+
+/* Floating background particles */
+.earnx-particle {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0;
+  filter: blur(0.5px);
+  box-shadow: 0 0 8px currentColor, 0 0 14px color-mix(in oklch, var(--color-gold) 45%, transparent);
+  animation-name: particle-float, particle-twinkle;
+  animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+}
+@keyframes particle-float {
+  0% { transform: translate3d(0, 40px, 0); opacity: 0; }
+  15% { opacity: 0.55; }
+  85% { opacity: 0.45; }
+  100% { transform: translate3d(var(--drift, 20px), -140px, 0); opacity: 0; }
+}
+@keyframes particle-twinkle {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .earnx-particle { animation: none; opacity: 0.35; }
+}

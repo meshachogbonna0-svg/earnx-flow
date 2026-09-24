@@ -42,7 +42,6 @@ import { Route as ActivateConfirmationRouteImport } from './routes/activate-conf
 import { Route as ActivateRouteImport } from './routes/activate'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UpgradeLevelRouteImport } from './routes/upgrade_.$level'
-import { Route as ApiAiChatRouteImport } from './routes/api.ai.chat'
 
 const WithdrawalProcessingRoute = WithdrawalProcessingRouteImport.update({
   id: '/withdrawal-processing',
@@ -209,11 +208,6 @@ const UpgradeLevelRoute = UpgradeLevelRouteImport.update({
   path: '/upgrade/$level',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAiChatRoute = ApiAiChatRouteImport.update({
-  id: '/api/ai/chat',
-  path: '/api/ai/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -249,7 +243,6 @@ export interface FileRoutesByFullPath {
   '/withdrawal-confirmation': typeof WithdrawalConfirmationRoute
   '/withdrawal-processing': typeof WithdrawalProcessingRoute
   '/upgrade/$level': typeof UpgradeLevelRoute
-  '/api/ai/chat': typeof ApiAiChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -285,7 +278,6 @@ export interface FileRoutesByTo {
   '/withdrawal-confirmation': typeof WithdrawalConfirmationRoute
   '/withdrawal-processing': typeof WithdrawalProcessingRoute
   '/upgrade/$level': typeof UpgradeLevelRoute
-  '/api/ai/chat': typeof ApiAiChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -322,7 +314,6 @@ export interface FileRoutesById {
   '/withdrawal-confirmation': typeof WithdrawalConfirmationRoute
   '/withdrawal-processing': typeof WithdrawalProcessingRoute
   '/upgrade_/$level': typeof UpgradeLevelRoute
-  '/api/ai/chat': typeof ApiAiChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -360,7 +351,6 @@ export interface FileRouteTypes {
     | '/withdrawal-confirmation'
     | '/withdrawal-processing'
     | '/upgrade/$level'
-    | '/api/ai/chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -396,7 +386,6 @@ export interface FileRouteTypes {
     | '/withdrawal-confirmation'
     | '/withdrawal-processing'
     | '/upgrade/$level'
-    | '/api/ai/chat'
   id:
     | '__root__'
     | '/'
@@ -432,7 +421,6 @@ export interface FileRouteTypes {
     | '/withdrawal-confirmation'
     | '/withdrawal-processing'
     | '/upgrade_/$level'
-    | '/api/ai/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -469,7 +457,6 @@ export interface RootRouteChildren {
   WithdrawalConfirmationRoute: typeof WithdrawalConfirmationRoute
   WithdrawalProcessingRoute: typeof WithdrawalProcessingRoute
   UpgradeLevelRoute: typeof UpgradeLevelRoute
-  ApiAiChatRoute: typeof ApiAiChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -705,13 +692,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UpgradeLevelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/ai/chat': {
-      id: '/api/ai/chat'
-      path: '/api/ai/chat'
-      fullPath: '/api/ai/chat'
-      preLoaderRoute: typeof ApiAiChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -749,7 +729,6 @@ const rootRouteChildren: RootRouteChildren = {
   WithdrawalConfirmationRoute: WithdrawalConfirmationRoute,
   WithdrawalProcessingRoute: WithdrawalProcessingRoute,
   UpgradeLevelRoute: UpgradeLevelRoute,
-  ApiAiChatRoute: ApiAiChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
