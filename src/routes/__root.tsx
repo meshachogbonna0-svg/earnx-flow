@@ -7,14 +7,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { PlatformMaintenanceBanner } from "@/components/platform-maintenance";
 import { FloatingParticles } from "@/components/floating-particles";
-import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
