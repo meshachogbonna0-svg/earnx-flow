@@ -13,7 +13,6 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { PlatformMaintenanceBanner } from "@/components/platform-maintenance";
-import { FloatingParticles } from "@/components/floating-particles";
 
 function NotFoundComponent() {
   return (
@@ -83,7 +82,6 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <FloatingParticles />
       <PlatformMaintenanceBanner />
       <Outlet />
       <Toaster />
