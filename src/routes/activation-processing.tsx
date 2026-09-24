@@ -20,8 +20,8 @@ function ActivationProcessingPage() {
     const load = async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return navigate({ to: "/login", replace: true });
-      const { data: prof } = await supabase.from("profiles").select("current_level").eq("id", auth.user.id).maybeSingle();
-      const lvl = Number((prof as { current_level?: number } | null)?.current_level ?? 1);
+      const { data: prof } = await supabase.from("profiles").select("level").eq("id", auth.user.id).maybeSingle();
+      const lvl = Number((prof as { level?: number } | null)?.level ?? 1);
       const [{ data: row }, { data: settings }, { data: lv }] = await Promise.all([
         supabase.from("activation_requests").select("status, admin_note, created_at, reference, amount").eq("user_id", auth.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("platform_settings").select("activation_fee").maybeSingle(),
