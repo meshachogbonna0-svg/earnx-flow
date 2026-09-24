@@ -7,7 +7,7 @@ import { naira } from "@/lib/format";
 
 export const Route = createFileRoute("/activation-processing")({ ssr: false, component: ActivationProcessingPage });
 
-type Req = { status: string; admin_note: string | null; created_at: string; reference: string | null };
+type Req = { status: string; admin_note: string | null; created_at: string; reference: string | null; amount: number | null };
 
 function ActivationProcessingPage() {
   const navigate = useNavigate();
@@ -20,14 +20,19 @@ function ActivationProcessingPage() {
     const load = async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return navigate({ to: "/login", replace: true });
-      const [{ data: row }, { data: settings }] = await Promise.all([
-        supabase.from("activation_requests").select("status, admin_note, created_at, reference").eq("user_id", auth.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      const { data: prof } = await supabase.from("profiles").select("current_level").eq("id", auth.user.id).maybeSingle();
+      const lvl = Number((prof as { current_level?: number } | null)?.current_level ?? 1);
+      const [{ data: row }, { data: settings }, { data: lv }] = await Promise.all([
+        supabase.from("activation_requests").select("status, admin_note, created_at, reference, amount").eq("user_id", auth.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("platform_settings").select("activation_fee").maybeSingle(),
+        supabase.from("levels").select("activation_fee").eq("level", lvl).maybeSingle(),
       ]);
       if (!alive) return;
       const r = row as Req | null;
       setReq(r);
-      setFee(Number((settings as { activation_fee?: number } | null)?.activation_fee ?? 0));
+      const reqAmt = Number(r?.amount ?? 0);
+      const lvlFee = Number((lv as { activation_fee?: number } | null)?.activation_fee ?? 0);
+      setFee(reqAmt > 0 ? reqAmt : lvlFee > 0 ? lvlFee : Number((settings as { activation_fee?: number } | null)?.activation_fee ?? 0));
       setLoading(false);
       if (r?.status === "approved" || r?.status === "activated") navigate({ to: "/activation-confirmation", replace: true });
     };
