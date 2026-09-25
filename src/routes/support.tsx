@@ -42,7 +42,7 @@ function SupportPage() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [contact, setContact] = useState({ email: "", whatsapp: "" });
+  const [contact, setContact] = useState({ email: "", whatsapp: "", telegram: "" });
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -56,11 +56,11 @@ function SupportPage() {
         .select("id, subject, description, status, admin_reply, created_at")
         .eq("user_id", auth.user.id)
         .order("created_at", { ascending: false }),
-      supabase.from("platform_settings").select("support_email, whatsapp_number").maybeSingle(),
+      supabase.from("platform_settings").select("support_email, whatsapp_number, telegram_url").maybeSingle(),
     ]);
     setTickets((t as Ticket[]) ?? []);
-    const set = s as { support_email: string; whatsapp_number: string } | null;
-    setContact({ email: set?.support_email ?? "", whatsapp: set?.whatsapp_number ?? "" });
+    const set = s as { support_email: string; whatsapp_number: string; telegram_url: string } | null;
+    setContact({ email: set?.support_email ?? "", whatsapp: set?.whatsapp_number ?? "", telegram: set?.telegram_url ?? "" });
     setLoading(false);
   };
 
