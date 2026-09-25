@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LifeBuoy, Loader2, Mail, MessageCircle } from "lucide-react";
+import { LifeBuoy, Loader2, Mail, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
@@ -42,7 +42,7 @@ function SupportPage() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [contact, setContact] = useState({ email: "", whatsapp: "" });
+  const [contact, setContact] = useState({ email: "", whatsapp: "", telegram: "" });
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -56,11 +56,11 @@ function SupportPage() {
         .select("id, subject, description, status, admin_reply, created_at")
         .eq("user_id", auth.user.id)
         .order("created_at", { ascending: false }),
-      supabase.from("platform_settings").select("support_email, whatsapp_number").maybeSingle(),
+      supabase.from("platform_settings").select("support_email, whatsapp_number, telegram_url").maybeSingle(),
     ]);
     setTickets((t as Ticket[]) ?? []);
-    const set = s as { support_email: string; whatsapp_number: string } | null;
-    setContact({ email: set?.support_email ?? "", whatsapp: set?.whatsapp_number ?? "" });
+    const set = s as { support_email: string; whatsapp_number: string; telegram_url: string } | null;
+    setContact({ email: set?.support_email ?? "", whatsapp: set?.whatsapp_number ?? "", telegram: set?.telegram_url ?? "" });
     setLoading(false);
   };
 
@@ -108,6 +108,24 @@ function SupportPage() {
           <span className="text-[11px] font-semibold">WhatsApp</span>
           <span className="truncate text-[10px] text-muted-foreground">{contact.whatsapp}</span>
         </a>
+        {contact.telegram ? (
+          <a
+            href={contact.telegram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="col-span-2 flex flex-col items-center gap-1.5 rounded-2xl border border-royal/40 bg-card p-4 text-center transition active:scale-[0.98]"
+          >
+            <Send className="h-4 w-4 text-royal" />
+            <span className="text-[11px] font-semibold">Chat on Telegram</span>
+            <span className="truncate text-[10px] text-muted-foreground">Message our support team on Telegram</span>
+          </a>
+        ) : (
+          <div className="col-span-2 flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card p-4 text-center opacity-50">
+            <Send className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[11px] font-semibold">Chat on Telegram</span>
+            <span className="truncate text-[10px] text-muted-foreground">Coming soon</span>
+          </div>
+        )}
       </section>
 
       <section className="animate-fade-up space-y-3 rounded-2xl border border-border bg-card p-4">
