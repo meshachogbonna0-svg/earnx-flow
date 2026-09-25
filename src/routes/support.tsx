@@ -108,6 +108,24 @@ function SupportPage() {
           <span className="text-[11px] font-semibold">WhatsApp</span>
           <span className="truncate text-[10px] text-muted-foreground">{contact.whatsapp}</span>
         </a>
+        {contact.telegram ? (
+          <a
+            href={contact.telegram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="col-span-2 flex flex-col items-center gap-1.5 rounded-2xl border border-royal/40 bg-card p-4 text-center transition active:scale-[0.98]"
+          >
+            <Send className="h-4 w-4 text-royal" />
+            <span className="text-[11px] font-semibold">Chat on Telegram</span>
+            <span className="truncate text-[10px] text-muted-foreground">Message our support team on Telegram</span>
+          </a>
+        ) : (
+          <div className="col-span-2 flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card p-4 text-center opacity-50">
+            <Send className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[11px] font-semibold">Chat on Telegram</span>
+            <span className="truncate text-[10px] text-muted-foreground">Coming soon</span>
+          </div>
+        )}
       </section>
 
       <section className="animate-fade-up space-y-3 rounded-2xl border border-border bg-card p-4">
