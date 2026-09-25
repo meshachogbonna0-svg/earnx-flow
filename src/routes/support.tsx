@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LifeBuoy, Loader2, Mail, MessageCircle } from "lucide-react";
+import { LifeBuoy, Loader2, Mail, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
