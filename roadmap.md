@@ -1,6 +1,7 @@
 # EarnX-Finance Task Roadmap
 
 ## In Progress
+- [ ] Replace the post-registration questionnaire with a frontend-only Welcome Bonus Claim flow and admin controls
 - [ ] Build frontend-only tapping sessions, cooldowns, and admin session controls against secure RPC contracts
 - [ ] Fix withdrawal-message handling for Levels 1–7 using RPC `data.message`
 - [ ] Allow receipt re-upload for activation/upgrade while processing or after rejection
