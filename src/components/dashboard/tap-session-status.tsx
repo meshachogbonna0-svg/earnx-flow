@@ -1,6 +1,7 @@
-import { TapSessionState } from "@/hooks/useTapSession";
 import { cn } from "@/lib/utils";
 import { Timer, CheckCircle2, Clock } from "lucide-react";
+
+export type TapSessionState = "idle" | "active" | "ended" | "cooldown";
 
 interface TapSessionStatusProps {
   state: TapSessionState;

@@ -1,177 +1,142 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertCircle, CheckCircle2, Clock3, Gift, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { naira } from "@/lib/format";
+import { rpc } from "@/lib/rpc";
 
-type Question = {
-  question: string;
-  type?: "single" | "multiple" | "boolean" | "short" | "paragraph" | "dropdown";
-  options?: string[];
-  required?: boolean;
+type BonusSettings = {
+  welcome_bonus?: number | null;
+  welcome_bonus_enabled?: boolean | null;
+  welcome_bonus_expiry?: string | null;
+  welcome_bonus_expires_at?: string | null;
+  welcome_bonus_title?: string | null;
+  welcome_bonus_message?: string | null;
+  welcome_bonus_announcement?: string | null;
 };
 
-type Questionnaire = {
-  id: string;
-  title: string;
-  description: string;
-  reward: number;
-  questions: Question[];
+type ClaimResult = { ok?: boolean; reason?: string; message?: string; amount?: number; balance?: number };
+
+const reasonMessages: Record<string, string> = {
+  already_claimed: "You have already claimed this welcome bonus.",
+  disabled: "The welcome bonus is not available right now.",
+  expired: "This welcome bonus has expired.",
+  unauthenticated: "Please sign in again to claim your welcome bonus.",
+  questionnaire_required: "The secure claim service is not ready for this new claim flow yet.",
 };
 
-const COUNTRY_OPTIONS = ["Nigeria", "Ghana", "Kenya", "South Africa", "United Kingdom", "United States", "Canada", "Other"];
-const STATE_OPTIONS = [
-  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta",
-  "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi",
-  "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers",
-  "Sokoto", "Taraba", "Yobe", "Zamfara", "FCT Abuja", "Other",
-];
-
-function prepareQuestion(raw: Question): Question {
-  const text = String(raw.question ?? "").trim();
-  if (/country of residence|^country$/i.test(text)) return { ...raw, type: "dropdown", options: COUNTRY_OPTIONS, required: raw.required !== false };
-  if (/state\/province|state or province|^state$/i.test(text)) return { ...raw, type: "dropdown", options: STATE_OPTIONS, required: raw.required !== false };
-  if (/gender|sex/i.test(text)) return { ...raw, type: "single", options: ["Male", "Female", "Prefer not to disclose my gender"], required: raw.required !== false };
-  if (/do you currently have a job|are you employed/i.test(text)) return { ...raw, type: "boolean", options: ["Yes", "No"], required: raw.required !== false };
-  if (/age|employment status|income|how did you hear|withdraw|how much time|hope to earn/i.test(text)) {
-    const options = raw.options?.length ? raw.options : ["Prefer not to say", "Option 1", "Option 2", "Option 3"];
-    return { ...raw, type: raw.type === "paragraph" ? raw.type : "single", options, required: raw.required !== false };
-  }
-  return raw;
-}
+const expiryOf = (settings: BonusSettings | null) => settings?.welcome_bonus_expires_at ?? settings?.welcome_bonus_expiry ?? null;
+const formattedExpiry = (value: string | null) => value ? new Date(value).toLocaleString("en-NG", { day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit" }) : null;
 
 export const Route = createFileRoute("/questionnaire")({
   ssr: false,
-  head: () => ({
-    meta: [
-      { title: "Welcome Questionnaire — EarnX-Finance" },
-      { name: "description", content: "Complete your welcome questionnaire to unlock your welcome bonus." },
-    ],
-  }),
-  component: QuestionnairePage,
+  head: () => ({ meta: [
+    { title: "Claim Your Welcome Bonus — EarnX-Finance" },
+    { name: "description", content: "Claim your secure EarnX-Finance welcome bonus before it expires." },
+    { property: "og:title", content: "Claim Your Welcome Bonus — EarnX-Finance" },
+    { property: "og:description", content: "Claim your secure EarnX-Finance welcome bonus before it expires." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: WelcomeBonusPage,
 });
 
-function QuestionnairePage() {
+function WelcomeBonusPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
-  const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<string[]>([]);
+  const [claiming, setClaiming] = useState(false);
+  const [settings, setSettings] = useState<BonusSettings | null>(null);
+  const [claimed, setClaimed] = useState(false);
+  const [claimedAmount, setClaimedAmount] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    let active = true;
     void (async () => {
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
-        navigate({ to: "/login", replace: true });
-        return;
-      }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("survey_completed, welcome_bonus_claimed")
-        .eq("id", auth.user.id)
-        .maybeSingle();
-      if (profile?.survey_completed && profile?.welcome_bonus_claimed) {
-        navigate({ to: "/dashboard", replace: true });
-        return;
-      }
-      const { data, error } = await supabase
-        .from("questionnaires")
-        .select("id, title, description, reward, questions")
-        .eq("active", true)
-        .order("sort_order", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (error || !data) {
-        toast.error("The welcome questionnaire is not available yet.");
-        navigate({ to: "/dashboard", replace: true });
-        return;
-      }
-      const questions = Array.isArray(data.questions) ? (data.questions as Question[]).map(prepareQuestion) : [];
-      setQuestionnaire({ ...(data as Omit<Questionnaire, "questions">), questions });
-      setAnswers(Array(questions.length).fill(""));
+      if (!auth.user) return navigate({ to: "/login", replace: true });
+      const [{ data: profile, error: profileError }, { data: rawSettings, error: settingsError }] = await Promise.all([
+        supabase.from("profiles").select("welcome_bonus_claimed").eq("id", auth.user.id).maybeSingle(),
+        supabase.from("platform_settings").select("*").maybeSingle(),
+      ]);
+      if (!active) return;
+      if (profileError || settingsError) setError("Welcome bonus details are unavailable right now. Please try again shortly.");
+      setClaimed(Boolean(profile?.welcome_bonus_claimed));
+      setSettings((rawSettings ?? null) as BonusSettings | null);
       setLoading(false);
     })();
+    return () => { active = false; };
   }, [navigate]);
 
+  useEffect(() => { const timer = window.setInterval(() => setTick((value) => value + 1), 1000); return () => window.clearInterval(timer); }, []);
+
+  const expiry = expiryOf(settings);
+  const expiryMs = expiry ? new Date(expiry).getTime() : Number.NaN;
+  const expired = Number.isFinite(expiryMs) && expiryMs <= Date.now();
+  const enabled = settings?.welcome_bonus_enabled !== false;
+  const amount = Number(settings?.welcome_bonus ?? 0);
+  const canClaim = enabled && !expired && !claimed && amount > 0 && !claiming;
+  const countdown = useMemo(() => {
+    void tick;
+    if (!Number.isFinite(expiryMs)) return null;
+    const total = Math.max(0, Math.ceil((expiryMs - Date.now()) / 1000));
+    const days = Math.floor(total / 86400);
+    const hours = Math.floor((total % 86400) / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    return `${days > 0 ? `${days}d ` : ""}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }, [expiryMs, tick]);
+
+  async function claim() {
+    if (!canClaim) return;
+    setClaiming(true); setError(null);
+    const { data, error: claimError } = await rpc<ClaimResult>("claim_welcome_bonus");
+    setClaiming(false);
+    if (claimError || !data?.ok) {
+      const message = data?.message ?? reasonMessages[data?.reason ?? ""] ?? claimError?.message ?? "Your welcome bonus could not be claimed. Please try again.";
+      setError(message); toast.error(message); return;
+    }
+    setClaimedAmount(Number(data.amount ?? amount));
+    setClaimed(true);
+  }
+
   if (loading) return <PageLoader />;
-  if (!questionnaire || questionnaire.questions.length === 0) {
-    return (
-      <AppPage title="Welcome to EarnX-Finance">
-        <div className="rounded-2xl border border-gold/30 bg-card p-6 text-center">
-          <Sparkles className="mx-auto h-8 w-8 text-gold" />
-          <p className="mt-3 text-sm font-semibold">Your welcome questionnaire is being prepared.</p>
-        </div>
-      </AppPage>
-    );
-  }
+  if (claimedAmount !== null) return <ClaimSuccess amount={claimedAmount} onContinue={() => navigate({ to: "/dashboard", replace: true })} />;
 
-  const active = questionnaire;
-  const current = questionnaire.questions[index];
-  const answer = answers[index] ?? "";
-  const isLast = index === questionnaire.questions.length - 1;
-  const setAnswer = (value: string) => setAnswers((previous) => previous.map((item, i) => (i === index ? value : item)));
-  const selectAnswer = (value: string) => {
-    setAnswer(value);
-    if (!isLast) window.setTimeout(() => setIndex((value) => value + 1), 120);
-    else void finish(answers.map((item, i) => (i === index ? value : item)));
-  };
+  return <AppPage nav={false} title="Welcome Bonus" subtitle="A secure reward from EarnX-Finance">
+    <section className="relative overflow-hidden rounded-3xl border border-gold/35 bg-gradient-to-br from-navy via-card to-navy-deep p-5 text-center shadow-gold-glow">
+      <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-gold/30 bg-gold/10 text-gold"><Gift className="h-8 w-8" /></div>
+      <p className="mt-5 text-xs font-semibold text-gold">Dear User,</p>
+      <h1 className="mt-2 font-display text-xl font-extrabold">{settings?.welcome_bonus_title || "You have been given a Welcome Bonus by EarnX Finance."}</h1>
+      <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">{settings?.welcome_bonus_message || "Claim your welcome bonus before it expires."}</p>
+      <div className="my-6 rounded-2xl border border-gold/30 bg-gold/10 p-5"><p className="text-[10px] font-bold tracking-[0.18em] text-gold">WELCOME BONUS</p><p className="mt-2 font-display text-4xl font-extrabold text-gold">{naira(amount)}</p></div>
 
-  async function finish(submittedAnswers = answers) {
-    if (saving) return;
-    if (active.questions.some((question, i) => question.required !== false && !String(submittedAnswers[i] ?? "").trim())) {
-      toast.error("Please answer every required question.");
-      return;
-    }
-    setSaving(true);
-    const { data, error } = await supabase.rpc("complete_questionnaire", {
-      _questionnaire_id: active.id,
-      _answers: submittedAnswers.map((value, i) => ({ question: active.questions[i]?.question ?? "", answer: value })),
-    });
-    if (error || !(data as { ok?: boolean } | null)?.ok) {
-      setSaving(false);
-      toast.error("The questionnaire could not be completed.", { description: error?.message });
-      return;
-    }
-    toast.success("Your welcome bonus has been credited.");
-    navigate({ to: "/dashboard", replace: true });
-  }
+      {expired ? <Status icon={AlertCircle} title="Welcome Bonus Expired" text={`Your welcome bonus expired${formattedExpiry(expiry) ? ` on ${formattedExpiry(expiry)}` : ""}.`} tone="error" />
+        : claimed ? <Status icon={CheckCircle2} title="Welcome Bonus Claimed" text="This welcome bonus has already been added to your account." tone="success" />
+        : !enabled ? <Status icon={AlertCircle} title="Welcome Bonus Unavailable" text="The welcome bonus is currently disabled." tone="error" />
+        : <div className="rounded-2xl border border-border bg-background/30 p-3"><p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground"><Clock3 className="h-4 w-4 text-gold" />{formattedExpiry(expiry) ? `Expires: ${formattedExpiry(expiry)}` : "Expiry has not been supplied by the administrator"}</p>{countdown && <p className="mt-2 font-display text-lg font-bold tabular-nums text-gold">{countdown}</p>}</div>}
 
-  const choiceQuestion = ["single", "dropdown", "boolean"].includes(current.type ?? "single");
-  const options = current.type === "boolean" ? ["Yes", "No"] : current.options ?? [];
+      {settings?.welcome_bonus_announcement && <p className="mt-4 rounded-xl border border-royal/30 bg-royal/10 p-3 text-xs text-muted-foreground">{settings.welcome_bonus_announcement}</p>}
+      {error && <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{error}</p>}
+      <div className="mt-5 space-y-2">
+        {!claimed && <Button type="button" disabled={!canClaim} onClick={() => void claim()} className="h-12 w-full bg-gold text-sm font-bold text-gold-foreground hover:bg-gold/90">{claiming ? <Loader2 className="animate-spin" /> : <Sparkles />}{claiming ? "Claiming securely…" : "Claim Welcome Bonus"}</Button>}
+        {claimed && <Button type="button" onClick={() => navigate({ to: "/dashboard", replace: true })} className="h-12 w-full bg-gold text-sm font-bold text-gold-foreground hover:bg-gold/90">Go to Dashboard</Button>}
+      </div>
+      <p className="mt-4 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-success" />Claim validation and crediting are handled securely.</p>
+    </section>
+  </AppPage>;
+}
 
-  return (
-    <AppPage title={questionnaire.title || "Welcome to EarnX-Finance"} subtitle={questionnaire.description || "Complete this short questionnaire to unlock your welcome bonus."}>
-      <section className="rounded-3xl border border-gold/30 bg-gradient-to-br from-navy via-card to-navy-deep p-5 shadow-soft">
-        <div className="flex items-center justify-between gap-3">
-          <span className="rounded-full bg-gold/10 px-3 py-1 text-[10px] font-bold text-gold">Question {index + 1} of {questionnaire.questions.length}</span>
-          <span className="text-[10px] font-semibold text-muted-foreground">{Math.round(((index + 1) / questionnaire.questions.length) * 100)}%</span>
-        </div>
-        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gold-gradient transition-all" style={{ width: `${((index + 1) / questionnaire.questions.length) * 100}%` }} /></div>
-        <h2 className="mt-7 text-lg font-extrabold leading-snug">{current.question}</h2>
+function Status({ icon: Icon, title, text, tone }: { icon: typeof AlertCircle; title: string; text: string; tone: "error" | "success" }) {
+  return <div className={tone === "success" ? "rounded-2xl border border-success/30 bg-success/10 p-4" : "rounded-2xl border border-destructive/30 bg-destructive/10 p-4"}><Icon className={tone === "success" ? "mx-auto h-6 w-6 text-success" : "mx-auto h-6 w-6 text-destructive"} /><p className="mt-2 text-sm font-bold">{title}</p><p className="mt-1 text-xs text-muted-foreground">{text}</p></div>;
+}
 
-        {choiceQuestion ? (
-          <div className="mt-5 space-y-2">
-            {options.map((option) => (
-              <button key={option} type="button" onClick={() => selectAnswer(option)} className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left text-sm transition ${answer === option ? "border-gold bg-gold/10 text-gold" : "border-border bg-background/40 hover:border-gold/30"}`}>
-                <span className={`grid h-5 w-5 place-items-center rounded-full border ${answer === option ? "border-gold bg-gold text-gold-foreground" : "border-muted-foreground/40"}`}>{answer === option && <CheckCircle2 className="h-4 w-4" />}</span>
-                {option}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Type your answer…" rows={current.type === "paragraph" ? 6 : 3} className="mt-5 w-full rounded-2xl border border-border bg-background/50 p-3.5 text-sm outline-none transition focus:border-gold/60" />
-        )}
-
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <button type="button" disabled={index === 0 || saving} onClick={() => setIndex((value) => Math.max(0, value - 1))} className="inline-flex items-center gap-1 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold disabled:opacity-40"><ChevronLeft className="h-4 w-4" /> Back</button>
-          {isLast ? (
-            choiceQuestion ? <span className="text-right text-[10px] font-semibold text-muted-foreground">Select an answer to finish automatically</span> : <button type="button" disabled={saving} onClick={() => void finish()} className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground disabled:opacity-60">{saving && <Loader2 className="h-4 w-4 animate-spin" />}{saving ? "Crediting bonus…" : "Finish & claim bonus"}</button>
-          ) : choiceQuestion ? <span className="text-right text-[10px] font-semibold text-muted-foreground">Choose an answer to continue</span> : <button type="button" onClick={() => { if (!answer.trim()) return toast.error("Please answer this question before continuing."); setIndex((value) => value + 1); }} className="inline-flex items-center gap-1 rounded-xl bg-gold-gradient px-5 py-2.5 text-xs font-bold text-gold-foreground">Next <ChevronRight className="h-4 w-4" /></button>}
-        </div>
-      </section>
-      <p className="text-center text-[10px] text-muted-foreground">Your welcome reward is credited only after the questionnaire is completed.</p>
-    </AppPage>
-  );
+function ClaimSuccess({ amount, onContinue }: { amount: number; onContinue: () => void }) {
+  const pieces = Array.from({ length: 42 }, (_, index) => index);
+  return <div className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-background px-5"><div className="pointer-events-none absolute inset-0" aria-hidden="true">{pieces.map((index) => <span key={index} className="earnx-confetti absolute left-1/2 top-1/3 h-2.5 w-1.5 rounded-full" style={{ "--x": `${((index * 47) % 320) - 160}px`, "--r": `${(index * 83) % 360}deg`, "--d": `${(index % 9) * 0.08}s` } as CSSProperties} />)}</div><section className="relative w-full max-w-sm rounded-3xl border border-gold/40 bg-gradient-to-br from-navy via-card to-navy-deep p-7 text-center shadow-gold-glow"><div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-success/40 bg-success/10"><CheckCircle2 className="h-10 w-10 text-success" /></div><Sparkles className="mx-auto mt-4 h-5 w-5 text-gold" /><h1 className="mt-3 font-display text-xl font-extrabold">Welcome Bonus Claimed!</h1><p className="mt-2 text-xs text-muted-foreground">{naira(amount)} has been added to your EarnX balance.</p><Button type="button" onClick={onContinue} className="mt-6 h-12 w-full bg-gold font-bold text-gold-foreground hover:bg-gold/90">Go to Dashboard</Button></section></div>;
 }

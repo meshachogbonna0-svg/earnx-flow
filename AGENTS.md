@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Tapping session UI must consume server-returned status, timestamps, counters, rewards, and limits; never create sessions, cooldowns, or financial values in browser state because the backend is authoritative.
