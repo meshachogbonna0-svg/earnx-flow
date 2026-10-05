@@ -12,7 +12,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { naira } from "@/lib/format";
 
 export const Route = createFileRoute("/register")({
-  head: () => ({ meta: [{ title: "Create Your Free Account — EarnX-Finance" }] }),
+  head: () => ({ meta: [
+    { title: "Create Your Free Account — EarnX-Finance" },
+    { name: "description", content: "Create your EarnX-Finance account and securely claim available rewards." },
+    { property: "og:title", content: "Create Your Free Account — EarnX-Finance" },
+    { property: "og:description", content: "Create your EarnX-Finance account and securely claim available rewards." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
   component: RegisterPage,
 });
 

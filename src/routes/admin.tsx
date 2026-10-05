@@ -18,6 +18,7 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
+  Timer,
   TrendingUp,
   Users,
   Wallet,
@@ -31,6 +32,7 @@ import { CrudSection } from "@/components/admin/crud";
 import { LevelsEditor } from "@/components/admin/levels-editor";
 import { RequestsQueue } from "@/components/admin/requests-queue";
 import { SupportInbox } from "@/components/admin/support-inbox";
+import { TappingSessions } from "@/components/admin/tapping-sessions";
 import { naira, dateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +65,7 @@ type Section =
   | "fraud"
   | "rewards"
   | "levels"
+  | "tapping-sessions"
   | "tasks"
   | "surveys"
   | "videos"
@@ -84,6 +87,7 @@ const menu: { key: Section; label: string; icon: typeof Users }[] = [
   { key: "fraud", label: "Fraud Reports", icon: MessageSquareWarning },
   { key: "rewards", label: "Rewards & Earnings", icon: Coins },
   { key: "levels", label: "Levels", icon: Layers },
+  { key: "tapping-sessions", label: "Tapping Sessions", icon: Timer },
   { key: "tasks", label: "Tasks", icon: Clipboard },
   { key: "surveys", label: "Surveys", icon: Sparkles },
   { key: "videos", label: "Videos", icon: PlayCircle },
@@ -729,6 +733,7 @@ function AdminPage() {
       )}
 
       {section === "levels" && <LevelsEditor />}
+      {section === "tapping-sessions" && <TappingSessions />}
 
       {section === "tasks" && (
         <CrudSection
