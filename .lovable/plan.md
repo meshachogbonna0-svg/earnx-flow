@@ -1,45 +1,36 @@
-# Frontend tapping sessions and cooldowns
+# Replace Tap & Earn with the EarnX experience
 
-## Goal
-Add the requested session-based tapping experience and a dedicated **Tapping Sessions** admin area without changing migrations, database objects, RLS, RPC definitions, financial rules, or unrelated pages.
+## Scope
+- Replace only the current `/tap` presentation and refine the existing Admin tapping section.
+- Keep authentication, routing, wallet, withdrawals, upgrades, tasks, profile, dashboard, and backend definitions unchanged.
+- Treat the supplied screenshots as structural references only; use the existing navy, purple, gold, emerald, black, and glass tokens.
 
-## User Tap experience
-- Refactor the current Tap page into explicit **ready**, **active**, **cooldown**, **ended**, **disabled**, **loading**, and **error** states while preserving its existing navy/gold mobile layout and bottom navigation.
-- Keep `tap_state()` as the initial source of truth and extend the frontend response type to consume Manus-provided session fields when present: session status, start, expiry, cooldown expiry, session tap count, session earnings, and level settings.
-- Show **Start Tapping** only when the backend says the session is ready. Starting calls the secure backend action, disables duplicate clicks, and renders only the returned state.
-- During an active session, derive a display-only countdown from the returned expiry timestamp. Continue sending every tap through `perform_tap()` and merge authoritative returned values instead of calculating rewards or balances locally.
-- At expiry or cooldown completion, refresh from `tap_state()` before enabling any action. Never locally declare a session active or award earnings.
-- Map `session_expired`, `cooldown_active`, `tapping_disabled`, `maximum_taps_reached`, `invalid_session`, and `unauthenticated` to clear inline notices/toasts, while preserving existing activation, account, battery, and daily-limit messages.
-- Display the current level name and backend-returned duration, cooldown, tap reward, maximum taps, current session taps, and session earnings. No React defaults will invent financial or timing values.
+## User Tap & Earn page
+- Build a premium rounded navy-to-purple header with the user's server-returned plan and reward rate.
+- Show server-returned Today Taps, Today Earned, and Total Earned statistics with Naira formatting.
+- Build an EarnX-branded circular `EARNX CORE` control with inactive, active, complete, cooldown, and disabled states.
+- Keep `tap_state`, `start_tapping_session`, and `perform_tap` as the only authorities for status, timestamps, counters, earnings, rewards, and limits.
+- Derive the countdown and progress display from backend timestamps and duration; refresh state at session/cooldown boundaries without awarding value locally.
+- Prevent concurrent starts/taps, provide restrained press/reward feedback after successful server responses, and show clear server reason messages.
+- Add Current Plan and Total Taps information cards, then reuse the existing bottom navigation with Tap highlighted.
+- Ensure the composition fits 360–412px screens without overflow and respects reduced motion.
 
-## Admin Tapping Sessions area
-- Add a **Tapping Sessions** entry to the existing admin navigation; do not redesign the panel.
-- Create a focused admin component with two views:
-  - **Level settings:** Levels 0–7 with Session Duration, Cooldown, Tap Reward, Max Taps, and Enabled controls. Load existing level rows and show a clear unavailable marker for fields Manus has not supplied yet.
-  - **Session activity:** username, level, session status, session start, expiry, cooldown expiry, tap count, and earnings, with loading, empty, error, and refresh states.
-- Save each level through the existing secure `admin_update_level_settings(_level, _settings)` RPC. The payload will add only the tapping-session fields shown in this section; it will not write directly to `levels`.
-- Load activity through a secure admin RPC and never query another user's session data from a public/user-scoped frontend table.
+## Admin Tap & Earn Settings
+- Rename the existing admin section to `Tap & Earn Settings`.
+- Keep Levels 0–7 and secure saves through `admin_update_level_settings`; never write settings directly from the browser.
+- Add available controls for session duration, maximum taps, reward per tap, sessions per day, cooldown, recharge, daily tap limit, and enabled state.
+- Show unavailable placeholders for fields Manus has not supplied, and include only supplied fields in the secure save payload.
+- Preserve the activity view and its existing `admin_tapping_session_activity` contract.
+- Add validation, per-level loading, success, and backend error feedback.
 
-## Backend contracts the frontend will expect from Manus
-Existing contracts will remain in use and only be extended where noted:
+## Verification
+- Fix the current TanStack root error-component typing regression required for a clean build, without changing its behavior.
+- Run the production build and inspect the Tap page at mobile width where authentication/backend availability permits.
+- Confirm no Nova text, pastel-lavender theme, duplicate navigation, frontend balance math, database migration, schema, RLS, or RPC definition changes.
 
-1. `tap_state()` — existing, authenticated. Expected additional response fields:
-   - `session_status`: `ready | active | cooldown | ended | disabled`
-   - `session_started_at`, `session_expires_at`, `cooldown_expires_at`: ISO timestamps or `null`
-   - `session_tap_count`, `session_earnings`
-   - `session_duration_seconds`, `session_cooldown_seconds`, `session_max_taps`
-   - existing fields such as `level`, `level_name`, `reward_per_tap`, `balance`, and limits remain authoritative.
-2. `start_tapping_session()` — required secure authenticated action because no start-session RPC exists in the repository. Returns the same authoritative session shape plus `ok`, optional `reason`, and optional `message`.
-3. `perform_tap()` — existing secure action. Manus should return the same session timestamps/status/counters when session enforcement is added; the UI will continue supporting current reward/balance/battery fields.
-4. `admin_update_level_settings(_level integer, _settings jsonb)` — existing secure admin action. Manus should accept `session_duration_seconds`, `session_cooldown_seconds`, `session_max_taps`, `reward_per_tap`, and `enabled`.
-5. `admin_tapping_session_activity()` — required secure admin read because no session-activity RPC exists. Expected `{ ok, rows }`, where each row has `id`, `username`, `level`, `level_name`, `session_status`, `session_started_at`, `session_expires_at`, `cooldown_expires_at`, `session_tap_count`, and `session_earnings`.
-
-All calls will tolerate an RPC error or missing new fields and show an unavailable state; they will not fall back to a fake timer, reward, session, approval, or balance.
-
-## Files and verification
-- Update `src/routes/tap.tsx` for the session state machine and backend-driven timers.
-- Add `src/components/admin/tapping-sessions.tsx` for level controls and activity.
-- Update `src/routes/admin.tsx` to register and render the new admin section.
-- Update `AGENTS.md` with the stable frontend/backend session-contract boundary.
-- Do not touch `supabase/`, generated backend clients/types, activation, upgrade, or withdrawal logic.
-- Run the existing production build, review the latest build diagnostics, and exercise public/renderable states where the connected backend permits.
+## Expected existing backend contracts
+- `tap_state()` returns authoritative plan/level, status, timestamps, counters, earnings, reward, duration, cooldown, maximum taps, and any daily/session limits it supports.
+- `start_tapping_session()` returns the newly authoritative session state or a reason/message.
+- `perform_tap()` validates and returns updated authoritative counters, earnings, balance, and session state.
+- `admin_update_level_settings(_level, _settings)` validates authorized per-level setting updates.
+- `admin_tapping_session_activity()` returns authorized session activity rows.
