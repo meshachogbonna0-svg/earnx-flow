@@ -11,8 +11,12 @@ type LevelSessionRow = {
   name?: string;
   session_duration_seconds?: number | null;
   session_cooldown_seconds?: number | null;
-  reward_per_tap?: number | null;
   session_max_taps?: number | null;
+  sessions_per_day?: number | null;
+  daily_sessions?: number | null;
+  daily_tap_limit?: number | null;
+  recharge_minutes?: number | null;
+  reward_per_tap?: number | null;
   enabled?: boolean | null;
 };
 
@@ -29,11 +33,22 @@ type SessionActivity = {
   session_earnings?: number | null;
 };
 
-type ActivityResponse = { ok?: boolean; reason?: string; message?: string; rows?: SessionActivity[] };
+type ActivityResponse = { ok?: boolean; message?: string; rows?: SessionActivity[] };
+type NumericKey = "session_duration_seconds" | "session_cooldown_seconds" | "session_max_taps" | "sessions_per_day" | "daily_sessions" | "daily_tap_limit" | "recharge_minutes" | "reward_per_tap";
 
 const unavailable = "Not supplied";
 const duration = (value?: number | null) => value == null ? unavailable : `${Math.floor(value / 60)}m ${value % 60}s`;
 const when = (value?: string | null) => value ? dateTime(value) : "—";
+
+const fields: Array<{ key: NumericKey; label: string; min: number; fallback?: NumericKey }> = [
+  { key: "session_duration_seconds", label: "Session duration (seconds)", min: 1 },
+  { key: "session_max_taps", label: "Maximum taps per session", min: 1 },
+  { key: "reward_per_tap", label: "Reward per tap (₦)", min: 0 },
+  { key: "sessions_per_day", fallback: "daily_sessions", label: "Sessions per day", min: 1 },
+  { key: "session_cooldown_seconds", label: "Cooldown duration (seconds)", min: 0 },
+  { key: "recharge_minutes", label: "Recharge duration (minutes)", min: 0 },
+  { key: "daily_tap_limit", label: "Daily tap limit", min: 0 },
+];
 
 export function TappingSessions() {
   const [tab, setTab] = useState<"settings" | "activity">("settings");
@@ -49,7 +64,7 @@ export function TappingSessions() {
   const loadLevels = async () => {
     setLoading(true);
     const { data, error } = await supabase.from("levels").select("*").order("level");
-    if (error) toast.error("Could not load tapping settings", { description: error.message });
+    if (error) toast.error("Could not load Tap & Earn settings", { description: error.message });
     setLevels(((data ?? []) as unknown as LevelSessionRow[]).filter((row) => row.level >= 0 && row.level <= 7));
     setLoading(false);
   };
@@ -60,7 +75,7 @@ export function TappingSessions() {
     const { data, error } = await rpc<ActivityResponse>("admin_tapping_session_activity");
     if (error || data?.ok === false) {
       setActivity([]);
-      setActivityUnavailable(data?.message ?? "Session activity will appear when Manus supplies the secure admin activity contract.");
+      setActivityUnavailable(data?.message ?? "Session activity is not available from the secure admin service yet.");
     } else setActivity(data?.rows ?? []);
     setActivityLoading(false);
   };
@@ -68,29 +83,36 @@ export function TappingSessions() {
   useEffect(() => { void loadLevels(); }, []);
   useEffect(() => { if (tab === "activity") void loadActivity(); }, [tab]);
 
-  const update = (level: number, key: keyof LevelSessionRow, value: number | boolean) => {
-    setLevels((rows) => rows.map((row) => row.level === level ? { ...row, [key]: value } : row));
-  };
+  const fieldKey = (row: LevelSessionRow, key: NumericKey, fallback?: NumericKey): NumericKey => fallback && row[key] == null && row[fallback] != null ? fallback : key;
+  const update = (level: number, key: keyof LevelSessionRow, value: number | boolean) => setLevels((rows) => rows.map((row) => row.level === level ? { ...row, [key]: value } : row));
 
   const save = async (row: LevelSessionRow) => {
-    if (row.session_duration_seconds == null || row.session_cooldown_seconds == null || row.session_max_taps == null) {
-      toast.error("Session fields are not available yet", { description: "Manus must add these fields to the secure level-settings contract before they can be saved." });
+    const required = [row.session_duration_seconds, row.session_cooldown_seconds, row.session_max_taps, row.reward_per_tap];
+    if (required.some((value) => value == null)) {
+      toast.error("Required session fields are unavailable", { description: "The secure level-settings contract must supply duration, cooldown, maximum taps, and reward before this level can be saved." });
       return;
     }
+    if (required.some((value) => Number(value) < 0) || Number(row.session_duration_seconds) < 1 || Number(row.session_max_taps) < 1) {
+      toast.error("Check the Tap & Earn values", { description: "Duration and maximum taps must be at least 1. Other values cannot be negative." });
+      return;
+    }
+
+    const settings: Record<string, number | boolean> = {
+      session_duration_seconds: Number(row.session_duration_seconds),
+      session_cooldown_seconds: Number(row.session_cooldown_seconds),
+      session_max_taps: Number(row.session_max_taps),
+      reward_per_tap: Number(row.reward_per_tap),
+      enabled: Boolean(row.enabled),
+    };
+    for (const key of ["sessions_per_day", "daily_sessions", "daily_tap_limit", "recharge_minutes"] as const) {
+      if (row[key] != null) settings[key] = Number(row[key]);
+    }
+
     setSaving(row.level);
-    const { data, error } = await rpc<{ ok?: boolean; reason?: string }>("admin_update_level_settings", {
-      _level: row.level,
-      _settings: {
-        session_duration_seconds: Number(row.session_duration_seconds),
-        session_cooldown_seconds: Number(row.session_cooldown_seconds),
-        session_max_taps: Number(row.session_max_taps),
-        reward_per_tap: Number(row.reward_per_tap ?? 0),
-        enabled: Boolean(row.enabled),
-      },
-    });
+    const { data, error } = await rpc<{ ok?: boolean; reason?: string; message?: string }>("admin_update_level_settings", { _level: row.level, _settings: settings });
     setSaving(null);
-    if (error || !data?.ok) return toast.error("Could not save this level", { description: data?.reason ?? error?.message });
-    toast.success(`Level ${row.level} tapping settings saved`);
+    if (error || !data?.ok) return toast.error("Could not save this level", { description: data?.message ?? data?.reason ?? error?.message });
+    toast.success(`Level ${row.level} Tap & Earn settings saved`);
     await loadLevels();
   };
 
@@ -99,6 +121,10 @@ export function TappingSessions() {
 
   return (
     <section className="space-y-3">
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <p className="text-sm font-extrabold text-gold">Tap & Earn Settings</p>
+        <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">Configure each level through the secure admin service. Unavailable fields remain clearly marked until the backend supplies them.</p>
+      </div>
       <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1.5">
         <Button type="button" variant={tab === "settings" ? "default" : "ghost"} onClick={() => setTab("settings")} className={tab === "settings" ? "bg-gold text-gold-foreground hover:bg-gold/90" : "text-muted-foreground"}><SlidersHorizontal /> Level settings</Button>
         <Button type="button" variant={tab === "activity" ? "default" : "ghost"} onClick={() => setTab("activity")} className={tab === "activity" ? "bg-gold text-gold-foreground hover:bg-gold/90" : "text-muted-foreground"}><Activity /> Activity</Button>
@@ -109,16 +135,15 @@ export function TappingSessions() {
           {levels.length === 0 && <p className="rounded-2xl border border-border bg-card p-6 text-center text-xs text-muted-foreground">Level settings are unavailable.</p>}
           {levels.map((row) => (
             <article key={row.level} className="rounded-2xl border border-border bg-card p-3.5">
-              <div className="flex items-center justify-between"><div><p className="text-xs font-bold">Level {row.level} · {row.name ?? "Unnamed"}</p><p className="mt-0.5 text-[10px] text-muted-foreground">Duration {duration(row.session_duration_seconds)} · Cooldown {duration(row.session_cooldown_seconds)}</p></div><span className={row.enabled ? "text-success" : "text-muted-foreground"}>{row.enabled ? "Enabled" : "Disabled"}</span></div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {([
-                  ["session_duration_seconds", "Session duration (seconds)"],
-                  ["session_cooldown_seconds", "Cooldown (seconds)"],
-                  ["reward_per_tap", "Tap reward (₦)"],
-                  ["session_max_taps", "Maximum taps"],
-                ] as const).map(([key, label]) => <label key={key} className="block"><span className="text-[10px] text-muted-foreground">{label}</span><input inputMode="decimal" placeholder={unavailable} value={row[key] ?? ""} onChange={(event) => update(row.level, key, Number(event.target.value))} className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2 text-[11px] outline-none focus:border-gold/60" /></label>)}
+              <div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate text-xs font-bold">Level {row.level} · {row.name ?? "Unnamed"}</p><p className="mt-0.5 text-[10px] text-muted-foreground">Duration {duration(row.session_duration_seconds)} · Cooldown {duration(row.session_cooldown_seconds)}</p></div><span className={row.enabled ? "text-success" : "text-muted-foreground"}>{row.enabled ? "Enabled" : "Disabled"}</span></div>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {fields.map(({ key, fallback, label, min }) => {
+                  const actualKey = fieldKey(row, key, fallback);
+                  const value = row[actualKey];
+                  return <label key={key} className="block"><span className="text-[10px] text-muted-foreground">{label}</span><input type="number" inputMode="decimal" min={min} placeholder={unavailable} value={value ?? ""} onChange={(event) => update(row.level, actualKey, Number(event.target.value))} className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2 text-[11px] outline-none focus:border-gold/60" />{value == null && <span className="mt-1 block text-[9px] text-muted-foreground">Not supplied by backend</span>}</label>;
+                })}
               </div>
-              <label className="mt-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2"><span className="text-[11px] font-medium">Enabled</span><input type="checkbox" checked={Boolean(row.enabled)} onChange={(event) => update(row.level, "enabled", event.target.checked)} className="h-4 w-4" /></label>
+              <label className="mt-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2"><span className="text-[11px] font-medium">Enable Tap & Earn</span><input type="checkbox" checked={Boolean(row.enabled)} onChange={(event) => update(row.level, "enabled", event.target.checked)} className="h-4 w-4 accent-gold" /></label>
               <Button type="button" onClick={() => void save(row)} disabled={saving === row.level} className="mt-3 w-full bg-gold text-gold-foreground hover:bg-gold/90"><Save />{saving === row.level ? "Saving…" : `Save Level ${row.level}`}</Button>
             </article>
           ))}

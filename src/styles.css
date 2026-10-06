@@ -302,6 +302,27 @@
   box-shadow: var(--shadow-gold);
 }
 
+@utility earnx-session-progress {
+  appearance: none;
+  background: var(--color-secondary);
+
+  &::-webkit-progress-bar {
+    background: var(--color-secondary);
+    border-radius: 999px;
+  }
+
+  &::-webkit-progress-value {
+    background-image: var(--gradient-gold);
+    border-radius: 999px;
+    transition: width 1s linear;
+  }
+
+  &::-moz-progress-bar {
+    background-image: var(--gradient-gold);
+    border-radius: 999px;
+  }
+}
+
 @utility reveal {
   opacity: 0;
   transform: translateY(26px);
