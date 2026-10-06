@@ -87,7 +87,7 @@ const menu: { key: Section; label: string; icon: typeof Users }[] = [
   { key: "fraud", label: "Fraud Reports", icon: MessageSquareWarning },
   { key: "rewards", label: "Rewards & Earnings", icon: Coins },
   { key: "levels", label: "Levels", icon: Layers },
-  { key: "tapping-sessions", label: "Tapping Sessions", icon: Timer },
+  { key: "tapping-sessions", label: "Tap & Earn Settings", icon: Timer },
   { key: "tasks", label: "Tasks", icon: Clipboard },
   { key: "surveys", label: "Surveys", icon: Sparkles },
   { key: "videos", label: "Videos", icon: PlayCircle },
