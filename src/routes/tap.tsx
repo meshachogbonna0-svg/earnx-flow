@@ -247,10 +247,14 @@ function TapPage() {
             <Button
               type="button"
               aria-label={active ? "Tap EarnX Core" : coreLabel}
-              disabled={!active || tapping || state.tapping_enabled === false}
-              onClick={() => void tap()}
+              disabled={!active || state.tapping_enabled === false}
+              onPointerDown={handlePointerDown}
+              onPointerUp={releasePointer}
+              onPointerCancel={releasePointer}
+              onPointerLeave={releasePointer}
+              onContextMenu={(event) => event.preventDefault()}
               className={cn(
-                "relative z-10 flex h-56 w-56 flex-col rounded-full border-2 border-gold/60 bg-gradient-to-br from-royal via-navy to-navy-deep p-0 text-foreground shadow-gold-glow transition duration-150 hover:from-royal hover:to-navy-deep disabled:opacity-100",
+                "relative z-10 flex h-56 w-56 touch-none select-none flex-col rounded-full border-2 border-gold/60 bg-gradient-to-br from-royal via-navy to-navy-deep p-0 text-foreground shadow-gold-glow transition duration-150 hover:from-royal hover:to-navy-deep disabled:opacity-100",
                 active ? "active:scale-95" : "grayscale-[0.15]",
                 tapping && "scale-95",
               )}
