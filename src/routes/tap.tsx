@@ -85,6 +85,19 @@ function TapPage() {
   const [tick, setTick] = useState(0);
   const [tapFeedback, setTapFeedback] = useState<number | null>(null);
   const refreshedBoundary = useRef<string | null>(null);
+  const inFlight = useRef(0);
+  const heldPointers = useRef<Set<number>>(new Set());
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (heldPointers.current.has(event.pointerId)) return;
+    heldPointers.current.add(event.pointerId);
+    void tap();
+  };
+
+  const releasePointer = (event: React.PointerEvent<HTMLButtonElement>) => {
+    heldPointers.current.delete(event.pointerId);
+  };
 
   const refresh = useCallback(async () => {
     const { data, error } = await callTapRpc("tap_state");
