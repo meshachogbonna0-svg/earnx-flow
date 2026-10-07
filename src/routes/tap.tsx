@@ -85,6 +85,19 @@ function TapPage() {
   const [tick, setTick] = useState(0);
   const [tapFeedback, setTapFeedback] = useState<number | null>(null);
   const refreshedBoundary = useRef<string | null>(null);
+  const inFlight = useRef(0);
+  const heldPointers = useRef<Set<number>>(new Set());
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (heldPointers.current.has(event.pointerId)) return;
+    heldPointers.current.add(event.pointerId);
+    void tap();
+  };
+
+  const releasePointer = (event: React.PointerEvent<HTMLButtonElement>) => {
+    heldPointers.current.delete(event.pointerId);
+  };
 
   const refresh = useCallback(async () => {
     const { data, error } = await callTapRpc("tap_state");
@@ -149,10 +162,12 @@ function TapPage() {
   };
 
   const tap = async () => {
-    if (tapping || !active || state.tapping_enabled === false) return;
+    if (!active || state.tapping_enabled === false) return;
+    inFlight.current += 1;
     setTapping(true);
     const { data, error } = await callTapRpc("perform_tap");
-    setTapping(false);
+    inFlight.current = Math.max(0, inFlight.current - 1);
+    if (inFlight.current === 0) setTapping(false);
     if (error || !data.ok) {
       const text = data.message ?? reasonMessages[data.reason ?? ""] ?? "This tap could not be processed.";
       setNotice(text);
@@ -232,10 +247,14 @@ function TapPage() {
             <Button
               type="button"
               aria-label={active ? "Tap EarnX Core" : coreLabel}
-              disabled={!active || tapping || state.tapping_enabled === false}
-              onClick={() => void tap()}
+              disabled={!active || state.tapping_enabled === false}
+              onPointerDown={handlePointerDown}
+              onPointerUp={releasePointer}
+              onPointerCancel={releasePointer}
+              onPointerLeave={releasePointer}
+              onContextMenu={(event) => event.preventDefault()}
               className={cn(
-                "relative z-10 flex h-56 w-56 flex-col rounded-full border-2 border-gold/60 bg-gradient-to-br from-royal via-navy to-navy-deep p-0 text-foreground shadow-gold-glow transition duration-150 hover:from-royal hover:to-navy-deep disabled:opacity-100",
+                "relative z-10 flex h-56 w-56 touch-none select-none flex-col rounded-full border-2 border-gold/60 bg-gradient-to-br from-royal via-navy to-navy-deep p-0 text-foreground shadow-gold-glow transition duration-150 hover:from-royal hover:to-navy-deep disabled:opacity-100",
                 active ? "active:scale-95" : "grayscale-[0.15]",
                 tapping && "scale-95",
               )}
