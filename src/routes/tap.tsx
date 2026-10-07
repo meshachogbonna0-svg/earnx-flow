@@ -149,10 +149,12 @@ function TapPage() {
   };
 
   const tap = async () => {
-    if (tapping || !active || state.tapping_enabled === false) return;
+    if (!active || state.tapping_enabled === false) return;
+    inFlight.current += 1;
     setTapping(true);
     const { data, error } = await callTapRpc("perform_tap");
-    setTapping(false);
+    inFlight.current = Math.max(0, inFlight.current - 1);
+    if (inFlight.current === 0) setTapping(false);
     if (error || !data.ok) {
       const text = data.message ?? reasonMessages[data.reason ?? ""] ?? "This tap could not be processed.";
       setNotice(text);
