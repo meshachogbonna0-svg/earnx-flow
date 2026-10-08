@@ -683,6 +683,42 @@ function AdminPage() {
             </label>
           ))}
           <div className="space-y-2 rounded-xl border border-gold/20 bg-gold/5 p-3">
+            <p className="text-[11px] font-bold text-gold">New user welcome bonus message</p>
+            <label className="block">
+              <span className="text-[10px] font-medium text-muted-foreground">Bonus expires on (date & time)</span>
+              <input
+                type="datetime-local"
+                value={(() => {
+                  const v = settings["welcome_bonus_expires_at"];
+                  if (!v) return "";
+                  const d = new Date(String(v));
+                  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                })()}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    welcome_bonus_expires_at: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  })
+                }
+                className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2 text-[11px] outline-none transition focus:border-gold/60"
+              />
+            </label>
+            {([
+              ["welcome_bonus_title", "Headline", 1],
+              ["welcome_bonus_message", "Welcome message", 3],
+            ] as const).map(([key, label, rows]) => (
+              <label key={key} className="block">
+                <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+                <textarea
+                  rows={rows}
+                  value={String(settings[key] ?? "")}
+                  onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2 text-[11px] outline-none transition focus:border-gold/60"
+                />
+              </label>
+            ))}
+          </div>
+          <div className="space-y-2 rounded-xl border border-gold/20 bg-gold/5 p-3">
             <p className="text-[11px] font-bold text-gold">Processing & celebration messages</p>
             {([
               ["activation_processing_message", "Activation processing message"],
