@@ -110,7 +110,22 @@ type UserRow = {
   account_status: string;
   total_taps: number;
   created_at: string;
+  last_login_at: string | null;
+  updated_at: string | null;
 };
+
+function lastActive(u: { last_login_at: string | null; updated_at: string | null }) {
+  const t = [u.last_login_at, u.updated_at].filter(Boolean).map((v) => new Date(v as string).getTime());
+  if (!t.length) return "Never";
+  const diff = Date.now() - Math.max(...t);
+  const m = Math.floor(diff / 60000);
+  if (m < 2) return "Active now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} h ago`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d} day${d > 1 ? "s" : ""} ago` : new Date(Math.max(...t)).toLocaleDateString("en-NG");
+}
 type FraudRow = {
   id: string;
   scammer_name: string;
@@ -170,7 +185,7 @@ function AdminPage() {
     const [{ data: u }, { data: s }, { data: f }, statsRes, txnRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id, username, email, first_name, balance, level, activation, account_status, total_taps, created_at")
+        .select("id, username, email, first_name, balance, level, activation, account_status, total_taps, created_at, last_login_at, updated_at")
         .order("created_at", { ascending: false })
         .limit(500),
       supabase.from("platform_settings").select("*").maybeSingle(),
@@ -520,6 +535,7 @@ function AdminPage() {
                   <p className="text-[10px] text-muted-foreground">
                     Level {u.level} · {u.activation} · {u.account_status} · {Number(u.total_taps ?? 0)} taps
                   </p>
+                  <p className="text-[10px] font-semibold text-success">Last active: {lastActive(u)}</p>
                 </div>
                 <p className="text-xs font-bold text-gold">{naira(u.balance)}</p>
               </div>

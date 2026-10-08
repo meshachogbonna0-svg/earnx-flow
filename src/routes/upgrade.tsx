@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { BatteryCharging, Check, Lock, ShieldCheck, TrendingUp, Zap } from "lucide-react";
+import { Check, Clock, Wallet, Target, Lock, ShieldCheck, TrendingUp, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
 import { naira } from "@/lib/format";
@@ -35,6 +35,9 @@ type Level = {
   daily_tap_limit: number;
   daily_earnings_limit: number;
   unlimited_battery: boolean;
+  unlimited_taps: boolean;
+  cooldown_minutes: number;
+  max_withdrawal: number;
   benefits: string[];
 };
 
@@ -145,24 +148,49 @@ function UpgradePage() {
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
-                <Stat icon={Zap} label="Per tap" value={naira(lv.reward_per_tap)} />
+              <p className="mt-3 text-[9px] font-semibold tracking-[0.2em] text-muted-foreground">TAP & EARN BENEFITS</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-2 text-[10px]">
+                <Stat icon={Zap} label="Reward per tap" value={naira(lv.reward_per_tap)} />
                 <Stat
-                  icon={BatteryCharging}
-                  label="Battery"
-                  value={lv.unlimited_battery ? "Unlimited" : `${lv.battery_capacity} taps`}
+                  icon={Target}
+                  label="Taps per session"
+                  value={lv.unlimited_battery || lv.unlimited_taps ? "Unlimited" : lv.battery_capacity.toLocaleString("en-NG")}
                 />
                 <Stat
                   icon={TrendingUp}
-                  label="Daily taps"
+                  label="Daily tap limit"
                   value={lv.daily_tap_limit > 0 ? lv.daily_tap_limit.toLocaleString("en-NG") : "Unlimited"}
                 />
                 <Stat
+                  icon={Clock}
+                  label="Session cooldown"
+                  value={lv.cooldown_minutes > 0 ? `${lv.cooldown_minutes} min` : "None"}
+                />
+                <Stat
                   icon={TrendingUp}
-                  label="Daily cap"
+                  label="Daily earning cap"
                   value={lv.daily_earnings_limit > 0 ? naira(lv.daily_earnings_limit) : "Unlimited"}
                 />
+                <Stat icon={Wallet} label="Max withdrawal" value={lv.max_withdrawal > 0 ? naira(lv.max_withdrawal) : "—"} />
               </div>
+
+              {!owned && (
+                <div className="mt-3 rounded-xl border border-border bg-secondary/40 p-2.5">
+                  <p className="text-[9px] font-semibold tracking-[0.2em] text-muted-foreground">REQUIREMENTS</p>
+                  <ul className="mt-1.5 space-y-1 text-[10px] text-foreground/80">
+                    {[
+                      { ok: lv.level - 1 <= current, text: `Complete Level ${lv.level - 1} first` },
+                      { ok: false, text: `Pay upgrade fee: ${lv.upgrade_price > 0 ? naira(lv.upgrade_price) : "Free"}` },
+                      { ok: false, text: `Activate after upgrade: ${lv.activation_fee > 0 ? naira(lv.activation_fee) : "Not configured"}` },
+                    ].map((r) => (
+                      <li key={r.text} className="flex items-start gap-1.5">
+                        <Check className={cn("mt-0.5 h-3 w-3 shrink-0", r.ok ? "text-success" : "text-muted-foreground/50")} />
+                        {r.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div
                 className={cn(
