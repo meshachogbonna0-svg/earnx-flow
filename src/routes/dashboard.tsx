@@ -127,6 +127,7 @@ function DashboardPage() {
         navigate({ to: "/login", replace: true });
         return;
       }
+      void supabase.from("profiles").update({ last_login_at: new Date().toISOString() }).eq("id", user.id);
       const profileQuery = () =>
         supabase
           .from("profiles")
