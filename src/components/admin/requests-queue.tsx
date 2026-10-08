@@ -76,6 +76,38 @@ export function RequestsQueue({ kind }: { kind: Kind }) {
     void load();
   };
 
+  /** Approve this request, then approve the same user's pending request of the other kind. */
+  const approveCombo = async (row: Row) => {
+    if (kind === "withdrawal") return;
+    const other = kind === "activation" ? "upgrade" : "activation";
+    setBusy(row.id);
+    const first = await rpc<{ ok: boolean }>(kind === "activation" ? "admin_review_activation" : "admin_review_upgrade", {
+      _request_id: row.id,
+      _approve: true,
+    });
+    if (first.error || !first.data?.ok) {
+      setBusy(null);
+      return toast.error(`Could not approve this ${kind}`);
+    }
+    const { data: list } = await rpc<{ rows: Row[] }>("admin_requests", { _kind: other });
+    const match = (list?.rows ?? []).find((r) => r.user_id === row.user_id && r.status === "pending");
+    if (!match) {
+      setBusy(null);
+      toast.success(`${kind === "activation" ? "Activation" : "Upgrade"} approved`, {
+        description: `This user has no pending ${other} request to approve.`,
+      });
+      return void load();
+    }
+    const second = await rpc<{ ok: boolean }>(other === "activation" ? "admin_review_activation" : "admin_review_upgrade", {
+      _request_id: match.id,
+      _approve: true,
+    });
+    setBusy(null);
+    if (second.error || !second.data?.ok) toast.error(`Approved ${kind}, but the ${other} could not be approved`);
+    else toast.success("Activation and upgrade both approved");
+    void load();
+  };
+
   const reject = async (reason: string) => {
     if (!rejecting) return;
     setBusy(rejecting.id);
@@ -190,6 +222,16 @@ export function RequestsQueue({ kind }: { kind: Kind }) {
                 {busy === r.id && <Loader2 className="h-3 w-3 animate-spin" />}
                 {kind === "withdrawal" ? "Mark as paid" : "Approve"}
               </button>
+              {kind !== "withdrawal" && (
+                <button
+                  type="button"
+                  disabled={busy === r.id}
+                  onClick={() => approveCombo(r)}
+                  className="flex-1 rounded-xl bg-gold/15 py-2 text-[11px] font-bold text-gold transition active:scale-[0.98]"
+                >
+                  {kind === "activation" ? "Approve + Upgrade" : "Upgrade + Activate"}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={busy === r.id}
