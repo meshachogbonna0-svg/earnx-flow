@@ -250,6 +250,51 @@ function WithdrawPage() {
 
   if (loading) return <PageLoader />;
 
+  const currentLevelName = levels.find((l) => l.level === currentLevel)?.name ?? `Level ${currentLevel}`;
+  const displayName = firstName.trim() || "User";
+  const gate: { title: string; message: string; actionLabel: string; actionTo: string; tone: "warn" | "success" } | null =
+    currentLevel < 1 && activation !== "activated"
+      ? activation === "pending"
+        ? {
+            title: `Dear ${displayName},`,
+            message: "Your activation is being reviewed by Admin. You will be able to continue once it is approved.",
+            actionLabel: "Track request",
+            actionTo: "/requests",
+            tone: "warn",
+          }
+        : {
+            title: `Dear ${displayName},`,
+            message: "Activate your account to continue.",
+            actionLabel: "Activate my account",
+            actionTo: "/activate",
+            tone: "warn",
+          }
+      : currentLevel < 1
+        ? {
+            title: `Dear ${displayName},`,
+            message: "Your account was activated successfully. Upgrade to Level 1 to continue.",
+            actionLabel: "Upgrade to Level 1",
+            actionTo: "/upgrade",
+            tone: "success",
+          }
+        : activation !== "activated"
+          ? activation === "pending"
+            ? {
+                title: `Dear ${displayName},`,
+                message: `Your ${currentLevelName} activation is being reviewed by Admin. You will be able to withdraw once it is approved.`,
+                actionLabel: "Track request",
+                actionTo: "/requests",
+                tone: "warn",
+              }
+            : {
+                title: `Dear ${displayName},`,
+                message: `Your ${currentLevelName} account is not activated. Activate it to withdraw.`,
+                actionLabel: `Activate ${currentLevelName}`,
+                actionTo: "/activate",
+                tone: "warn",
+              }
+          : null;
+
   return (
     <AppPage
       title="Withdraw Funds"
