@@ -54,6 +54,7 @@ function WelcomeBonusPage() {
   const [claimedAmount, setClaimedAmount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const [firstName, setFirstName] = useState("User");
 
   useEffect(() => {
     let active = true;
@@ -61,12 +62,13 @@ function WelcomeBonusPage() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return navigate({ to: "/login", replace: true });
       const [{ data: profile, error: profileError }, { data: rawSettings, error: settingsError }] = await Promise.all([
-        supabase.from("profiles").select("welcome_bonus_claimed").eq("id", auth.user.id).maybeSingle(),
+        supabase.from("profiles").select("welcome_bonus_claimed, first_name").eq("id", auth.user.id).maybeSingle(),
         supabase.from("platform_settings").select("*").maybeSingle(),
       ]);
       if (!active) return;
       if (profileError || settingsError) setError("Welcome bonus details are unavailable right now. Please try again shortly.");
       setClaimed(Boolean(profile?.welcome_bonus_claimed));
+      setFirstName(profile?.first_name?.trim() || "User");
       setSettings((rawSettings ?? null) as BonusSettings | null);
       setLoading(false);
     })();
@@ -111,9 +113,9 @@ function WelcomeBonusPage() {
   return <AppPage nav={false} title="Welcome Bonus" subtitle="A secure reward from EarnX-Finance">
     <section className="relative overflow-hidden rounded-3xl border border-gold/35 bg-gradient-to-br from-navy via-card to-navy-deep p-5 text-center shadow-gold-glow">
       <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-gold/30 bg-gold/10 text-gold"><Gift className="h-8 w-8" /></div>
-      <p className="mt-5 text-xs font-semibold text-gold">Dear User,</p>
+      <p className="mt-5 text-xs font-semibold text-gold">Dear {firstName},</p>
       <h1 className="mt-2 font-display text-xl font-extrabold">{settings?.welcome_bonus_title || "You have been given a Welcome Bonus by EarnX Finance."}</h1>
-      <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">{settings?.welcome_bonus_message || "Claim your welcome bonus before it expires."}</p>
+      <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">{settings?.welcome_bonus_message || `Claim it before it expires${formattedExpiry(expiry) ? ` on ${formattedExpiry(expiry)}` : ""}.`}</p>
       <div className="my-6 rounded-2xl border border-gold/30 bg-gold/10 p-5"><p className="text-[10px] font-bold tracking-[0.18em] text-gold">WELCOME BONUS</p><p className="mt-2 font-display text-4xl font-extrabold text-gold">{naira(amount)}</p></div>
 
       {expired ? <Status icon={AlertCircle} title="Welcome Bonus Expired" text={`Your welcome bonus expired${formattedExpiry(expiry) ? ` on ${formattedExpiry(expiry)}` : ""}.`} tone="error" />
