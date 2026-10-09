@@ -119,6 +119,8 @@ function WithdrawPage() {
   const [history, setHistory] = useState<Withdrawal[]>([]);
   const [levels, setLevels] = useState<LevelRow[]>([]);
   const [currentLevel, setCurrentLevel] = useState(0);
+  const [activation, setActivation] = useState<string>("not_activated");
+  const [firstName, setFirstName] = useState("");
   const [effectiveMin, setEffectiveMin] = useState(5000);
   const [effectiveMax, setEffectiveMax] = useState(0);
   const [lastSubmitted, setLastSubmitted] = useState<Withdrawal | null>(null);
@@ -137,7 +139,7 @@ function WithdrawPage() {
     const [{ data: p }, { data: s }, { data: w }, { data: lvls }] = await Promise.all([
       supabase
         .from("profiles")
-        .select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level")
+        .select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level, activation, first_name")
         .eq("id", auth.user.id)
         .maybeSingle(),
       supabase.from("platform_settings").select("*").maybeSingle(),
