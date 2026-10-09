@@ -268,7 +268,7 @@ function TapPage() {
           </section>
 
           {status === "ready" && (
-            <Button type="button" disabled={!sessionFieldsAvailable || starting || state.activation !== "activated" || state.tapping_enabled === false} onClick={() => void start()} className="h-12 w-full rounded-xl bg-gold-gradient font-bold text-gold-foreground shadow-gold-glow hover:opacity-90">
+            <Button type="button" disabled={!sessionFieldsAvailable || starting || state.tapping_enabled === false} onClick={() => void start()} className="h-12 w-full rounded-xl bg-gold-gradient font-bold text-gold-foreground shadow-gold-glow hover:opacity-90">
               {starting ? <Loader2 className="animate-spin" /> : <Play />}{starting ? "Starting securely…" : "Start Tap Session"}
             </Button>
           )}

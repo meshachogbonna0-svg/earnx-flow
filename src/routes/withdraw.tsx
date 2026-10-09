@@ -80,6 +80,8 @@ function messageFor(res: WithdrawResult, currentName: string, nextName: string |
       return "Please sign in again to continue.";
     case "no_profile":
       return "Your profile could not be loaded. Please contact support.";
+    case "level_zero":
+      return "Level 0 accounts cannot withdraw. Please upgrade to Level 1 and activate Level 1 before you can withdraw.";
     case "not_activated":
       return `Please activate your ${currentName} level before you can withdraw.`;
     case "account_restricted":
