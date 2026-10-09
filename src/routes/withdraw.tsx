@@ -158,11 +158,15 @@ function WithdrawPage() {
       bank_account_number: string | null;
       bank_account_name: string | null;
       level: number;
+      activation: string;
+      first_name: string | null;
     } | null;
     const allLevels = (lvls as LevelRow[]) ?? [];
     const level = prof?.level ?? 0;
     setLevels(allLevels);
     setCurrentLevel(level);
+    setActivation(prof?.activation ?? "not_activated");
+    setFirstName(prof?.first_name ?? "");
     setBalance(prof?.balance ?? 0);
     setPending(prof?.pending_balance ?? 0);
     setBankName(prof?.bank_name ?? "");
