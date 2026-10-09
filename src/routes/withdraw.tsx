@@ -119,6 +119,8 @@ function WithdrawPage() {
   const [history, setHistory] = useState<Withdrawal[]>([]);
   const [levels, setLevels] = useState<LevelRow[]>([]);
   const [currentLevel, setCurrentLevel] = useState(0);
+  const [activation, setActivation] = useState<string>("not_activated");
+  const [firstName, setFirstName] = useState("");
   const [effectiveMin, setEffectiveMin] = useState(5000);
   const [effectiveMax, setEffectiveMax] = useState(0);
   const [lastSubmitted, setLastSubmitted] = useState<Withdrawal | null>(null);
@@ -137,7 +139,7 @@ function WithdrawPage() {
     const [{ data: p }, { data: s }, { data: w }, { data: lvls }] = await Promise.all([
       supabase
         .from("profiles")
-        .select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level")
+        .select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level, activation, first_name")
         .eq("id", auth.user.id)
         .maybeSingle(),
       supabase.from("platform_settings").select("*").maybeSingle(),
@@ -156,11 +158,15 @@ function WithdrawPage() {
       bank_account_number: string | null;
       bank_account_name: string | null;
       level: number;
+      activation: string;
+      first_name: string | null;
     } | null;
     const allLevels = (lvls as LevelRow[]) ?? [];
     const level = prof?.level ?? 0;
     setLevels(allLevels);
     setCurrentLevel(level);
+    setActivation(prof?.activation ?? "not_activated");
+    setFirstName(prof?.first_name ?? "");
     setBalance(prof?.balance ?? 0);
     setPending(prof?.pending_balance ?? 0);
     setBankName(prof?.bank_name ?? "");
@@ -243,6 +249,51 @@ function WithdrawPage() {
   };
 
   if (loading) return <PageLoader />;
+
+  const currentLevelName = levels.find((l) => l.level === currentLevel)?.name ?? `Level ${currentLevel}`;
+  const displayName = firstName.trim() || "User";
+  const gate: { title: string; message: string; actionLabel: string; actionTo: string; tone: "warn" | "success" } | null =
+    currentLevel < 1 && activation !== "activated"
+      ? activation === "pending"
+        ? {
+            title: `Dear ${displayName},`,
+            message: "Your activation is being reviewed by Admin. You will be able to continue once it is approved.",
+            actionLabel: "Track request",
+            actionTo: "/requests",
+            tone: "warn",
+          }
+        : {
+            title: `Dear ${displayName},`,
+            message: "Activate your account to continue.",
+            actionLabel: "Activate my account",
+            actionTo: "/activate",
+            tone: "warn",
+          }
+      : currentLevel < 1
+        ? {
+            title: `Dear ${displayName},`,
+            message: "Your account was activated successfully. Upgrade to Level 1 to continue.",
+            actionLabel: "Upgrade to Level 1",
+            actionTo: "/upgrade",
+            tone: "success",
+          }
+        : activation !== "activated"
+          ? activation === "pending"
+            ? {
+                title: `Dear ${displayName},`,
+                message: `Your ${currentLevelName} activation is being reviewed by Admin. You will be able to withdraw once it is approved.`,
+                actionLabel: "Track request",
+                actionTo: "/requests",
+                tone: "warn",
+              }
+            : {
+                title: `Dear ${displayName},`,
+                message: `Your ${currentLevelName} account is not activated. Activate it to withdraw.`,
+                actionLabel: `Activate ${currentLevelName}`,
+                actionTo: "/activate",
+                tone: "warn",
+              }
+          : null;
 
   return (
     <AppPage
