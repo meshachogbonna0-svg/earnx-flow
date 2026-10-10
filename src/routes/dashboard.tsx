@@ -26,7 +26,6 @@ const logoAsset = { url: "/earnx-eagle-logo.png" };
 import { Counter } from "@/components/motion/reveal";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { SidebarDrawer } from "@/components/dashboard/sidebar-drawer";
-import { OnboardingTour } from "@/components/dashboard/onboarding-tour";
 import { cn } from "@/lib/utils";
 
 const rpc = async (fn: string, args?: Record<string, unknown>) => {
@@ -377,6 +376,20 @@ function DashboardPage() {
         </section>
 
         {/* Bonuses */}
+        {profile && !profile.welcome_bonus_claimed && (
+          <Link
+            to="/questionnaire"
+            className="animate-fade-up flex items-center gap-3 rounded-2xl border border-gold/50 bg-gradient-to-r from-gold/15 via-card to-royal/15 p-4 shadow-gold-glow transition active:scale-[0.98]"
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold-gradient text-gold-foreground">
+              <Gift className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-gold">Your welcome bonus is waiting</p>
+              <p className="text-[10px] text-muted-foreground">You haven't claimed it yet. Tap here to claim it now.</p>
+            </div>
+          </Link>
+        )}
         <section className="animate-fade-up rounded-2xl border border-gold/30 bg-card p-4 shadow-soft">
           <div className="flex items-center gap-2">
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-gold/15 text-gold">
@@ -520,7 +533,6 @@ function DashboardPage() {
       />
 
       <BottomNav active="home" />
-      <OnboardingTour firstName={first} />
 
       <Link to="/" className="sr-only">
         Back to home

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Clipboard, Home, Megaphone, Pointer, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OnboardingTour } from "@/components/dashboard/onboarding-tour";
 
 type NavKey = "home" | "tasks" | "promotions" | "profile" | "tap";
 
@@ -14,6 +15,8 @@ const items = [
 /** Shared mobile bottom navigation with the centred TAP action. */
 export function BottomNav({ active }: { active: NavKey }) {
   return (
+    <>
+    <OnboardingTour />
     <nav className="fixed inset-x-0 bottom-0 z-40">
       <div className="relative mx-auto max-w-md px-4 pb-4 sm:max-w-lg">
         <div className="grid grid-cols-5 items-end rounded-2xl border border-border bg-card/95 px-2 py-2.5 shadow-card backdrop-blur">
@@ -42,6 +45,7 @@ export function BottomNav({ active }: { active: NavKey }) {
         </Link>
       </div>
     </nav>
+    </>
   );
 }
 
