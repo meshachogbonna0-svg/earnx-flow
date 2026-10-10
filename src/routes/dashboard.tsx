@@ -519,6 +519,7 @@ function DashboardPage() {
                   </div>
                 </div>
               );
+            })}
           </div>
         </section>
       </div>
@@ -532,7 +533,6 @@ function DashboardPage() {
       />
 
       <BottomNav active="home" />
-      <OnboardingTour firstName={first} />
 
       <Link to="/" className="sr-only">
         Back to home
