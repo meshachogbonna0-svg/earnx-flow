@@ -200,28 +200,57 @@ function DashboardPage() {
   const refresh = useCallback(async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
-    const [{ data: p, error: profileError }, { data: t }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select(
-          "id, first_name, other_names, balance, total_earned, earned_today, total_taps, level, activation, avatar_url, username, welcome_bonus_claimed",
-        )
-        .eq("id", data.user.id)
-        .maybeSingle(),
-      supabase
-        .from("transactions")
-        .select("id, type, amount, description, status, created_at")
-        .eq("user_id", data.user.id)
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ]);
+    const [{ data: p, error: profileError }, { data: t }, { count }, { count: unreadCount }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "id, first_name, other_names, balance, total_earned, earned_today, total_taps, level, activation, avatar_url, username, welcome_bonus_claimed",
+          )
+          .eq("id", data.user.id)
+          .maybeSingle(),
+        supabase
+          .from("transactions")
+          .select("id, type, amount, description, status, created_at")
+          .eq("user_id", data.user.id)
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("referrals")
+          .select("id", { count: "exact", head: true })
+          .eq("referrer_id", data.user.id),
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", data.user.id)
+          .eq("read", false),
+      ]);
     if (profileError) {
       console.error("[Dashboard] Profile refresh failed:", profileError);
       return;
     }
     setProfile((p as Profile) ?? null);
     setTxns((t as Txn[]) ?? []);
+    setReferrals(count ?? 0);
+    setUnread(unreadCount ?? 0);
   }, []);
+
+  // Keep the dashboard live: poll quietly in the background and refresh
+  // immediately when the user comes back to the tab, so approvals and
+  // earnings appear without a manual reload.
+  useEffect(() => {
+    const interval = window.setInterval(() => void refresh(), 15000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [refresh]);
 
   const claim = useCallback(
     async (fn: "claim_welcome_bonus" | "claim_daily_bonus") => {
