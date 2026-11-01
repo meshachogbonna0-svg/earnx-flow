@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  BadgeCheck, ChevronLeft, ChevronRight, ClipboardList, Hand, HelpCircle, Rocket, ShieldCheck,
+  BadgeCheck, ChevronLeft, ChevronRight, ClipboardList, Hand, HelpCircle, Pointer, Rocket, ShieldCheck,
   Sparkles, Trophy, User, UserCircle, WalletCards, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,26 +9,38 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "earnx_live_tour_v3";
 
-const steps = [
+type TourStep = {
+  icon: typeof Sparkles;
+  label: string;
+  title: string;
+  body: string;
+  /** CSS selector of the on-screen element this step points at (optional). */
+  target?: string;
+};
+
+const steps: TourStep[] = [
   { icon: Sparkles, label: "WELCOME", title: "Welcome to EarnX-Finance", body: "Here's a quick tour of everything you can do. It only takes a minute." },
-  { icon: WalletCards, label: "1 · WITHDRAW", title: "Cash out your earnings", body: "Send your balance straight to your Nigerian bank account. Your level must be activated first." },
-  { icon: ShieldCheck, label: "2 · VERIFY", title: "Activate your account", body: "Pay the small activation fee by bank transfer and upload your receipt. Admin will confirm it for you." },
-  { icon: Hand, label: "3 · TAP & EARN", title: "Tap to earn ₦", body: "Press the gold TAP button, start a session and tap the core. Every tap adds to your earnings." },
-  { icon: ClipboardList, label: "4 · SURVEYS", title: "Answer short surveys", body: "Share your opinion on simple questions and get rewarded for each survey you finish." },
-  { icon: Trophy, label: "5 · QUIZ", title: "Play quick quizzes", body: "Answer fun questions correctly to earn extra rewards on top of tapping." },
-  { icon: Rocket, label: "6 · UPGRADE", title: "Move up a level", body: "Upgrade one level at a time (1 to 7). Higher levels earn more per tap and can withdraw more." },
-  { icon: User, label: "7 · ME", title: "Your personal space", body: "See your level, history, referrals, notifications and support all in one place." },
-  { icon: UserCircle, label: "8 · PROFILE", title: "Keep your details right", body: "Update your name, photo and bank details so your withdrawals always arrive safely." },
+  { icon: WalletCards, label: "1 · WITHDRAW", title: "Cash out your earnings", body: "Send your balance straight to your Nigerian bank account. Your level must be activated first.", target: 'a[href="/withdraw"]' },
+  { icon: ShieldCheck, label: "2 · VERIFY", title: "Activate your account", body: "Pay the small activation fee by bank transfer and upload your receipt. Admin will confirm it for you.", target: 'a[href="/activate"]' },
+  { icon: Hand, label: "3 · TAP & EARN", title: "Tap to earn ₦", body: "Press the gold TAP button at the bottom, start a session and tap the core. Every tap adds to your earnings.", target: 'a[href="/tap"]' },
+  { icon: ClipboardList, label: "4 · SURVEYS", title: "Answer short surveys", body: "Open Tasks and share your opinion on simple questions — you get rewarded for each survey you finish.", target: 'a[href="/tasks"]' },
+  { icon: Trophy, label: "5 · QUIZ", title: "Play quick quizzes", body: "Also inside Tasks: answer fun questions correctly to earn extra rewards on top of tapping.", target: 'a[href="/tasks"]' },
+  { icon: Rocket, label: "6 · UPGRADE", title: "Move up a level", body: "Upgrade one level at a time (1 to 7). Higher levels earn more per tap and can withdraw more.", target: 'a[href="/upgrade"]' },
+  { icon: User, label: "7 · ME", title: "Your personal space", body: "Open the menu at the top-left for your level, history, referrals, notifications and support — all in one place.", target: 'button[aria-label="Open menu"]' },
+  { icon: UserCircle, label: "8 · PROFILE", title: "Keep your details right", body: "Update your name, photo and bank details so your withdrawals always arrive safely.", target: 'a[href="/profile"]' },
   { icon: BadgeCheck, label: "YOU'RE READY", title: "Start earning now", body: "You can replay this tour any time with the ? button at the bottom-right of your screen." },
 ];
 
 /** Opens the tour from anywhere in the app. */
 export const openTour = () => window.dispatchEvent(new Event("earnx:open-tour"));
 
+type Rect = { top: number; left: number; width: number; height: number; below: boolean };
+
 export function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [firstName, setFirstName] = useState<string>();
+  const [spot, setSpot] = useState<Rect | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +70,31 @@ export function OnboardingTour() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Locate the element the current step points at and keep the highlight on it.
+  useLayoutEffect(() => {
+    if (!open) { setSpot(null); return; }
+    const selector = steps[step].target;
+    const measure = () => {
+      if (!selector) { setSpot(null); return; }
+      const el = document.querySelector(selector);
+      if (!el) { setSpot(null); return; }
+      const r = el.getBoundingClientRect();
+      const pad = 10;
+      setSpot({
+        top: Math.max(8, r.top - pad),
+        left: Math.max(8, r.left - pad),
+        width: Math.min(window.innerWidth - 16, r.width + pad * 2),
+        height: r.height + pad * 2,
+        below: r.top > window.innerHeight / 2,
+      });
+    };
+    measure();
+    const raf = window.setTimeout(measure, 60);
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    return () => { window.clearTimeout(raf); window.removeEventListener("resize", measure); window.removeEventListener("scroll", measure, true); };
+  }, [open, step]);
+
   const current = steps[step];
   const StepIcon = current.icon;
 
@@ -73,7 +110,32 @@ export function OnboardingTour() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[180] flex items-end justify-center bg-background/85 p-4 pb-5 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+        <div className="fixed inset-0 z-[180] flex items-end justify-center p-4 pb-5 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+          {/* Spotlight over the real element, or a plain dim when nothing is targetable */}
+          {spot ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute rounded-[26px] border-2 border-gold transition-all duration-300 ease-out"
+              style={{
+                top: spot.top, left: spot.left, width: spot.width, height: spot.height,
+                boxShadow: "0 0 0 9999px oklch(0.12 0.03 275 / 0.88), 0 0 26px 2px oklch(0.82 0.15 88 / 45%)",
+              }}
+            >
+              <span className="absolute inset-0 animate-ping rounded-[26px] border border-gold/50" />
+              {/* Pointing hand */}
+              <span
+                className={cn(
+                  "absolute left-1/2 grid h-11 w-11 -translate-x-1/2 place-items-center rounded-full border-2 border-gold bg-gold-gradient text-gold-foreground shadow-gold-glow animate-bounce",
+                  spot.below ? "top-full mt-2" : "bottom-full mb-2",
+                )}
+              >
+                <Pointer className={cn("h-5 w-5", spot.below ? "rotate-180" : "")} />
+              </span>
+            </div>
+          ) : (
+            <div aria-hidden className="absolute inset-0 bg-background/85 backdrop-blur-sm" />
+          )}
+
           <div ref={panelRef} tabIndex={-1} key={step} className="relative w-full max-w-sm animate-fade-up overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-br from-navy via-card to-navy-deep p-5 shadow-gold-glow outline-none">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gold-gradient" />
             <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-royal/25 blur-3xl" />
@@ -89,7 +151,7 @@ export function OnboardingTour() {
             </div>
 
             <div className="relative mt-5 min-h-28 text-center">
-              <p className="text-[10px] font-bold tracking-[0.18em] text-royal-foreground/80 text-gold-soft">{current.label}</p>
+              <p className="text-[10px] font-bold tracking-[0.18em] text-gold-soft">{current.label}</p>
               <h2 id="tour-title" className="mt-2 font-display text-xl font-extrabold">
                 {step === 0 && firstName ? `Welcome, ${firstName}!` : current.title}
               </h2>
