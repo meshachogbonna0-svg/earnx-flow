@@ -9,4 +9,5 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
+- Tapping session UI must consume server-returned status, timestamps, counters, rewards, and limits; never create sessions, cooldowns, or financial values in browser state because the backend is authoritative.
 - PWA is manifest-only (installable app + icons); no service worker or offline caching may be added unless the user explicitly asks for offline support.
