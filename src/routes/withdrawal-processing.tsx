@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { naira, dateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import "@/styles/withdrawal-status.css";
 
 export const Route = createFileRoute("/withdrawal-processing")({
   ssr: false,
@@ -43,7 +44,7 @@ function WithdrawalProcessingPage() {
         .select("id, status, amount, reference, admin_note, created_at, reviewed_at")
         .eq("user_id", auth.user.id);
       query = id ? query.eq("id", id) : query.order("created_at", { ascending: false }).limit(1);
-      const { data, error } = id ? await query.maybeSingle() : await query.maybeSingle();
+      const { data, error } = await query.maybeSingle();
       if (!alive) return;
       setLoadError(Boolean(error));
       setRequest((data as WithdrawalRequest | null) ?? null);
@@ -74,18 +75,23 @@ function WithdrawalProcessingPage() {
     );
   }
 
+  // Only render final-result screens for the decision actually stored on the request.
   if (request.status === "rejected") {
     return (
-      <AppPage title="Withdrawal Status" subtitle="Decision recorded" nav={false}>
+      <AppPage title="Withdrawal Status" subtitle="Decision recorded" nav={false} className="withdrawal-result-page">
         <StatusPanel
           tone="error"
-          icon={<X className="h-12 w-12 stroke-[3]" />}
+          icon={<X className="status-x-mark h-12 w-12 stroke-[3]" aria-hidden="true" />}
           eyebrow="WITHDRAWAL DECLINED"
           title="Withdrawal Request Rejected!"
           message="Unfortunately, your withdrawal request has been rejected. Please review your withdrawal details or contact our support team for assistance."
           request={request}
         >
-          {request.admin_note && <p className="mt-4 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-left text-sm leading-6 text-foreground">Admin reason: {request.admin_note}</p>}
+          {request.admin_note && (
+            <p className="mt-4 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-left text-sm leading-6 text-foreground">
+              Admin reason: {request.admin_note}
+            </p>
+          )}
           <Button asChild className="mt-6 h-12 w-full rounded-xl bg-gold-gradient text-gold-foreground">
             <Link to="/support"><Headset /> Contact Support</Link>
           </Button>
@@ -99,10 +105,10 @@ function WithdrawalProcessingPage() {
 
   if (request.status === "approved" || request.status === "completed") {
     return (
-      <AppPage title="Withdrawal Status" subtitle="Decision recorded" nav={false}>
+      <AppPage title="Withdrawal Status" subtitle="Decision recorded" nav={false} className="withdrawal-result-page">
         <StatusPanel
           tone="success"
-          icon={<Check className="h-12 w-12 stroke-[3]" />}
+          icon={<Check className="status-check-mark h-12 w-12 stroke-[3]" aria-hidden="true" />}
           eyebrow="WITHDRAWAL APPROVED"
           title="Withdrawal Approved Successfully!"
           message="Congratulations! Your withdrawal request has been approved successfully. Your transaction has been processed."
@@ -153,17 +159,17 @@ function StatusPanel({
   const positive = tone === "success";
   return (
     <section className={cn(
-      "animate-fade-up relative mt-5 overflow-hidden rounded-3xl border bg-gradient-to-b p-6 text-center shadow-card sm:p-8",
+      "withdrawal-status-panel animate-fade-up relative mt-5 flex w-full flex-col justify-center overflow-hidden rounded-3xl border bg-gradient-to-b p-5 text-center shadow-card sm:p-8",
       positive ? "border-success/35 from-success/10 to-card" : "border-destructive/35 from-destructive/10 to-card",
     )}>
       <span className={cn(
-        "mx-auto grid h-24 w-24 place-items-center rounded-full animate-scale-in",
+        "status-icon-ring mx-auto grid h-24 w-24 shrink-0 place-items-center rounded-full",
         positive ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
       )}>{icon}</span>
-      <p className={cn("mt-6 text-[10px] font-bold tracking-[0.22em]", positive ? "text-success" : "text-destructive")}>{eyebrow}</p>
+      <p className={cn("mt-5 text-[10px] font-bold tracking-[0.22em]", positive ? "text-success" : "text-destructive")}>{eyebrow}</p>
       <h2 className="mt-2 font-display text-2xl font-extrabold leading-tight">{title}</h2>
       <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
-      <div className="mt-6 space-y-3 rounded-2xl border border-border bg-background/35 p-4 text-left">
+      <div className="mt-5 space-y-3 rounded-2xl border border-border bg-background/35 p-4 text-left">
         <Detail label="Withdrawal amount" value={naira(request.amount)} emphasis />
         <Detail label="Transaction reference" value={request.reference || "Not supplied"} />
       </div>
@@ -173,5 +179,10 @@ function StatusPanel({
 }
 
 function Detail({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
-  return <div className="flex items-start justify-between gap-4 text-xs"><span className="shrink-0 text-muted-foreground">{label}</span><span className={cn("min-w-0 break-all text-right font-semibold", emphasis && "font-display text-base text-gold")}>{value}</span></div>;
+  return (
+    <div className="flex items-start justify-between gap-4 text-xs">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className={cn("min-w-0 break-all text-right", emphasis && "font-bold text-foreground")}>{value}</span>
+    </div>
+  );
 }
