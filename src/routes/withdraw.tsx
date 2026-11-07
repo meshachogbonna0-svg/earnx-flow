@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Landmark, Loader2, AlertCircle, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,43 +70,26 @@ type WithdrawResult = {
 
 const FALLBACK_MESSAGE = "Your withdrawal could not be processed. Please try again later.";
 
-/** Build the exact user-facing message for each rejection reason and level. */
 function messageFor(res: WithdrawResult, currentName: string, nextName: string | null) {
   if (res.message) return res.message;
-
   switch (res.reason) {
-    case "disabled":
-      return "Withdrawals are temporarily disabled. Please try again later.";
-    case "unauthenticated":
-      return "Please sign in again to continue.";
-    case "no_profile":
-      return "Your profile could not be loaded. Please contact support.";
-    case "level_zero":
-      return "Level 0 accounts cannot withdraw. Please upgrade to Level 1 and activate Level 1 before you can withdraw.";
-    case "not_activated":
-      return `Please activate your ${currentName} level before you can withdraw.`;
-    case "account_restricted":
-      return "Your account is currently restricted. Please contact support.";
-    case "below_minimum":
-      return "The withdrawal amount is below the minimum allowed amount.";
-    case "above_maximum":
-      return nextName
-        ? `The withdrawal amount exceeds the maximum allowed for your level. Please upgrade to ${nextName} to withdraw more.`
-        : "The withdrawal amount exceeds the maximum allowed for your level.";
-    case "insufficient_balance":
-      return "Your balance is insufficient for this withdrawal.";
-    case "daily_limit":
-      return "You have reached the daily withdrawal amount limit.";
-    case "daily_count_limit":
-      return "You have reached the maximum number of withdrawals allowed today.";
-    case "missing_bank_details":
-      return "Please provide valid bank details before withdrawing.";
-    case "invalid_amount":
-      return "Please enter a valid withdrawal amount.";
-    case "duplicate":
-      return "A similar withdrawal request was recently submitted.";
-    default:
-      return FALLBACK_MESSAGE;
+    case "disabled": return "Withdrawals are temporarily disabled. Please try again later.";
+    case "unauthenticated": return "Please sign in again to continue.";
+    case "no_profile": return "Your profile could not be loaded. Please contact support.";
+    case "level_zero": return "Level 0 accounts cannot withdraw. Please upgrade to Level 1 and activate Level 1 before you can withdraw.";
+    case "not_activated": return `Please activate your ${currentName} level before you can withdraw.`;
+    case "account_restricted": return "Your account is currently restricted. Please contact support.";
+    case "below_minimum": return `The withdrawal amount is below the minimum allowed amount${res.min ? ` of ${naira(res.min)}` : ""}.`;
+    case "above_maximum": return nextName
+      ? `The withdrawal amount exceeds the maximum allowed for your level. Please upgrade to ${nextName} to withdraw more.`
+      : "The withdrawal amount exceeds the maximum allowed for your level.";
+    case "insufficient_balance": return `Your balance is insufficient${res.balance !== undefined ? `; available balance: ${naira(res.balance)}` : ""}.`;
+    case "daily_limit": return "You have reached the daily withdrawal amount limit.";
+    case "daily_count_limit": return "You have reached the maximum number of withdrawals allowed today.";
+    case "missing_bank_details": return "Please provide valid bank details before withdrawing.";
+    case "invalid_amount": return "Please enter a valid withdrawal amount.";
+    case "duplicate": return "A similar withdrawal request was recently submitted.";
+    default: return FALLBACK_MESSAGE;
   }
 }
 
@@ -114,215 +97,196 @@ function WithdrawPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
-  const [pending, setPending] = useState(0);
+  const [pendingBalance, setPendingBalance] = useState(0);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [history, setHistory] = useState<Withdrawal[]>([]);
   const [levels, setLevels] = useState<LevelRow[]>([]);
   const [currentLevel, setCurrentLevel] = useState(0);
-  const [activation, setActivation] = useState<string>("not_activated");
-  const [firstName, setFirstName] = useState("");
+  const [activation, setActivation] = useState("not_activated");
   const [effectiveMin, setEffectiveMin] = useState(5000);
   const [effectiveMax, setEffectiveMax] = useState(0);
-  const [lastSubmitted, setLastSubmitted] = useState<Withdrawal | null>(null);
   const [amount, setAmount] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      navigate({ to: "/login", replace: true });
-      return;
+  const load = useCallback(async () => {
+    setLoading(true);
+    setPageError(null);
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!auth.user) {
+        navigate({ to: "/login", replace: true });
+        return;
+      }
+
+      const [profileResult, settingsResult, withdrawalsResult, levelsResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level, activation")
+          .eq("id", auth.user.id)
+          .maybeSingle(),
+        supabase.from("platform_settings").select("*").maybeSingle(),
+        supabase
+          .from("withdrawals")
+          .select("id, reference, amount, status, bank_name, created_at")
+          .eq("user_id", auth.user.id)
+          .order("created_at", { ascending: false })
+          .limit(10),
+        supabase.from("levels").select("level, name, min_withdrawal, max_withdrawal").order("level"),
+      ]);
+
+      const failedQuery = [profileResult, settingsResult, withdrawalsResult, levelsResult].find((result) => result.error);
+      if (failedQuery?.error) throw failedQuery.error;
+      if (!profileResult.data) throw new Error("Your account profile was not found. Please sign out and sign back in.");
+      if (!settingsResult.data) throw new Error("Withdrawal settings are unavailable. Please contact support.");
+
+      const profile = profileResult.data;
+      const platform = settingsResult.data as Settings;
+      const allLevels = (levelsResult.data ?? []) as LevelRow[];
+      const level = Number(profile.level ?? 0);
+      const current = allLevels.find((row) => row.level === level);
+      const min = Number(current?.min_withdrawal ?? 0);
+      const max = Number(current?.max_withdrawal ?? 0);
+
+      setCurrentLevel(level);
+      setActivation(profile.activation ?? "not_activated");
+      setBalance(Number(profile.balance ?? 0));
+      setPendingBalance(Number(profile.pending_balance ?? 0));
+      setBankName(profile.bank_name ?? "");
+      setAccountNumber(profile.bank_account_number ?? "");
+      setAccountName(profile.bank_account_name ?? "");
+      setSettings(platform);
+      setHistory((withdrawalsResult.data ?? []) as Withdrawal[]);
+      setLevels(allLevels);
+      setEffectiveMin(min > 0 ? min : Number(platform.min_withdrawal ?? 5000));
+      setEffectiveMax(max > 0 ? max : Number(platform.max_withdrawal ?? 0));
+    } catch (loadError) {
+      console.error("Could not load withdrawal page", loadError);
+      setPageError(loadError instanceof Error ? loadError.message : "Withdrawal data could not be loaded. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    const [{ data: p }, { data: s }, { data: w }, { data: lvls }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level, activation, first_name")
-        .eq("id", auth.user.id)
-        .maybeSingle(),
-      supabase.from("platform_settings").select("*").maybeSingle(),
-      supabase
-        .from("withdrawals")
-        .select("id, reference, amount, status, bank_name, created_at")
-        .eq("user_id", auth.user.id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-      supabase.from("levels").select("level, name, min_withdrawal, max_withdrawal").order("level"),
-    ]);
-    const prof = p as {
-      balance: number;
-      pending_balance: number;
-      bank_name: string | null;
-      bank_account_number: string | null;
-      bank_account_name: string | null;
-      level: number;
-      activation: string;
-      first_name: string | null;
-    } | null;
-    const allLevels = (lvls as LevelRow[]) ?? [];
-    const level = prof?.level ?? 0;
-    setLevels(allLevels);
-    setCurrentLevel(level);
-    setActivation(prof?.activation ?? "not_activated");
-    setFirstName(prof?.first_name ?? "");
-    setBalance(prof?.balance ?? 0);
-    setPending(prof?.pending_balance ?? 0);
-    setBankName(prof?.bank_name ?? "");
-    setAccountNumber(prof?.bank_account_number ?? "");
-    setAccountName(prof?.bank_account_name ?? "");
-    setSettings(s as Settings);
-    setHistory((w as Withdrawal[]) ?? []);
-    const current = allLevels.find((l) => l.level === level);
-    const lmin = Number(current?.min_withdrawal ?? 0);
-    const lmax = Number(current?.max_withdrawal ?? 0);
-    setEffectiveMin(lmin > 0 ? lmin : Number((s as Settings)?.min_withdrawal ?? 5000));
-    setEffectiveMax(lmax > 0 ? lmax : Number((s as Settings)?.max_withdrawal ?? 0));
-    setLoading(false);
-  };
+  }, [navigate]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const submit = async () => {
     if (busy) return;
     setBusy(true);
     setError(null);
-
     try {
-      const rpcCall = supabase.rpc("request_withdrawal", {
+      const { data, error: rpcError } = await supabase.rpc("request_withdrawal", {
         _amount: Number(amount),
         _bank_name: bankName,
         _account_number: accountNumber,
         _account_name: accountName,
       });
+      if (rpcError) throw rpcError;
 
-      const { data, error } = await Promise.race([
-        rpcCall,
-        new Promise<{ data: null; error: { message: string } }>((_, reject) =>
-          setTimeout(() => reject(new Error("Withdrawal request timed out. Please try again.")), 20000),
-        ),
-      ]);
-
-      const res = (data ?? {}) as WithdrawResult;
-      if (error) {
-        setBusy(false);
-        return toast.error("Withdrawal failed", { description: "Please check your connection and try again." });
-      }
-
-      const current = levels.find((l) => l.level === currentLevel);
-      const currentName = current?.name ?? `Level ${currentLevel}`;
-      const next = levels.find((l) => l.level === currentLevel + 1);
-      const nextName = next?.name ?? null;
-
-      if (!res.ok) {
-        const msg = messageFor(res, currentName, nextName);
-        setError(msg);
-        setBusy(false);
+      const result = (data ?? {}) as WithdrawResult;
+      const currentName = levels.find((row) => row.level === currentLevel)?.name ?? `Level ${currentLevel}`;
+      const nextName = levels.find((row) => row.level === currentLevel + 1)?.name ?? null;
+      if (!result.ok) {
+        setError(messageFor(result, currentName, nextName));
         return;
       }
 
-      toast.success("Withdrawal request submitted", {
-        description: "Your request is now being processed by Admin.",
+      toast.success("Withdrawal request submitted", { description: "Your request is now being processed by Admin." });
+      // Do not invent a local final status: the result screen fetches the request from the database.
+      await navigate({
+        to: "/withdrawal-processing",
+        search: result.id ? { id: String(result.id) } : undefined,
+        replace: true,
       });
-      const submitted: Withdrawal = {
-        id: String(res.id ?? ""),
-        reference: String(res.reference ?? ""),
-        amount: Number(amount),
-        status: "processing",
-        bank_name: bankName,
-        created_at: new Date().toISOString(),
-      };
-      setAmount("");
-      setError(null);
-      setLastSubmitted(submitted);
-      navigate({ to: "/withdrawal-processing", replace: true });
-    } catch (requestError) {
-      console.error("request_withdrawal timed out", requestError);
+    } catch (submitError) {
+      console.error("Withdrawal request failed", submitError);
+      setError(submitError instanceof Error ? submitError.message : "Withdrawal request failed. Please try again.");
+    } finally {
       setBusy(false);
-      return toast.error("Withdrawal request timed out", {
-        description: "Please check your connection and try again.",
-      });
     }
   };
 
   if (loading) return <PageLoader />;
 
-  const currentLevelName = levels.find((l) => l.level === currentLevel)?.name ?? `Level ${currentLevel}`;
-  const displayName = firstName.trim() || "User";
-  const gate: { title: string; message: string; actionLabel: string; actionTo: string; tone: "warn" | "success"; pending?: boolean } | null =
-    currentLevel < 1 && activation !== "activated"
-      ? activation === "pending"
+  if (pageError) {
+    return (
+      <AppPage title="Withdraw Funds" subtitle="Unable to load withdrawal information" nav={false}>
+        <section className="rounded-3xl border border-destructive/35 bg-destructive/10 p-5 text-center" role="alert">
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-destructive/15 text-destructive"><AlertCircle className="h-6 w-6" /></span>
+          <h2 className="mt-3 font-display text-lg font-bold">Withdrawal page couldn’t load</h2>
+          <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">{pageError}</p>
+          <Button type="button" onClick={() => void load()} className="mt-5 h-11 w-full rounded-xl bg-gold-gradient text-gold-foreground">Try again</Button>
+          <Button asChild variant="outline" className="mt-3 h-11 w-full rounded-xl"><Link to="/dashboard">Return to Dashboard</Link></Button>
+        </section>
+      </AppPage>
+    );
+  }
+
+  const currentLevelName = levels.find((row) => row.level === currentLevel)?.name ?? `Level ${currentLevel}`;
+  const gate = currentLevel < 1
+    ? activation === "activated"
+      ? {
+          title: "Account Activated Successfully!",
+          message: "Congratulations! Your account has been successfully activated and verified in our system. However, Level 0 accounts are not eligible for withdrawals. To unlock withdrawal privileges, please upgrade your account to Level 1.",
+          actionLabel: "Upgrade to Level 1",
+          actionTo: "/upgrade" as const,
+          success: true,
+        }
+      : activation === "pending"
         ? {
             title: "Activation Under Review",
             message: "Your activation is being reviewed. You will be able to continue once it is approved.",
             actionLabel: "Track request",
-            actionTo: "/requests",
-            tone: "warn",
-            pending: true,
+            actionTo: "/requests" as const,
+            success: false,
           }
         : {
             title: "Withdrawal Unavailable!",
             message: "Your withdrawal request cannot be processed because your account has not been activated yet. Please activate your account to continue.",
-            actionLabel: "Activate my account",
-            actionTo: "/activate",
-            tone: "warn",
+            actionLabel: "Activate Account",
+            actionTo: "/activate" as const,
+            success: false,
           }
-      : currentLevel < 1
+    : activation !== "activated"
+      ? activation === "pending"
         ? {
-            title: "Account Activated Successfully!",
-            message: "Congratulations! Your account has been successfully activated and verified in our system. However, Level 0 accounts are not eligible for withdrawals. To unlock withdrawal privileges, please upgrade your account to Level 1.",
-            actionLabel: "Upgrade to Level 1",
-            actionTo: "/upgrade",
-            tone: "success",
+            title: "Activation Under Review",
+            message: `Your ${currentLevelName} activation is being reviewed by Admin. You will be able to withdraw once it is approved.`,
+            actionLabel: "Track request",
+            actionTo: "/requests" as const,
+            success: false,
           }
-        : activation !== "activated"
-          ? activation === "pending"
-            ? {
-                title: "Activation Under Review",
-                message: `Your ${currentLevelName} activation is being reviewed by Admin. You will be able to withdraw once it is approved.`,
-                actionLabel: "Track request",
-                actionTo: "/requests",
-                tone: "warn",
-                pending: true,
-              }
-            : {
-                title: "Withdrawal Unavailable!",
-                message: `Your ${currentLevelName} account has not been activated yet. Please activate it to continue.`,
-                actionLabel: `Activate ${currentLevelName}`,
-                actionTo: "/activate",
-                tone: "warn",
-              }
-          : null;
+        : {
+            title: "Withdrawal Unavailable!",
+            message: `Your ${currentLevelName} account has not been activated yet. Please activate it to continue.`,
+            actionLabel: `Activate ${currentLevelName}`,
+            actionTo: "/activate" as const,
+            success: false,
+          }
+      : null;
 
   if (gate) {
-    const positive = gate.tone === "success";
     return (
       <AppPage title="Withdrawal Eligibility" subtitle="Your account status" nav={false}>
         <section className={cn(
-          "relative mt-8 overflow-hidden rounded-3xl border p-6 text-center shadow-card animate-fade-up sm:p-8",
-          positive ? "border-success/35 bg-gradient-to-b from-success/10 to-card" : "border-destructive/35 bg-gradient-to-b from-destructive/10 to-card",
+          "relative mt-5 overflow-hidden rounded-3xl border p-5 text-center shadow-card sm:p-8",
+          gate.success ? "border-success/35 bg-gradient-to-b from-success/10 to-card" : "border-destructive/35 bg-gradient-to-b from-destructive/10 to-card",
         )}>
-          <div className={cn(
-            "mx-auto grid h-24 w-24 place-items-center rounded-full animate-scale-in",
-            positive ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
-          )}>
-            {positive ? <Check className="h-12 w-12 stroke-[3]" /> : <X className="h-12 w-12 stroke-[3]" />}
+          <div className={cn("mx-auto grid h-24 w-24 place-items-center rounded-full animate-scale-in", gate.success ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
+            {gate.success ? <Check className="h-12 w-12 stroke-[3]" /> : <X className="h-12 w-12 stroke-[3]" />}
           </div>
-          <p className={cn("mt-6 text-[10px] font-bold tracking-[0.22em]", positive ? "text-success" : "text-destructive")}>
-            {gate.pending ? "ACCOUNT REVIEW" : "WITHDRAWAL ELIGIBILITY"}
-          </p>
+          <p className={cn("mt-5 text-[10px] font-bold tracking-[0.22em]", gate.success ? "text-success" : "text-destructive")}>WITHDRAWAL ELIGIBILITY</p>
           <h2 className="mt-2 font-display text-2xl font-extrabold leading-tight">{gate.title}</h2>
           <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-muted-foreground">{gate.message}</p>
-          <Button asChild className="mt-7 h-12 w-full rounded-xl bg-gold-gradient text-sm font-bold text-gold-foreground hover:opacity-90">
-            <Link to={gate.actionTo}>{gate.actionLabel}</Link>
-          </Button>
-          <Button asChild variant="outline" className="mt-3 h-12 w-full rounded-xl border-border bg-background/40 text-sm font-semibold">
-            <Link to="/dashboard">Return to Dashboard</Link>
-          </Button>
+          <Button asChild className="mt-7 h-12 w-full rounded-xl bg-gold-gradient text-sm font-bold text-gold-foreground"><Link to={gate.actionTo}>{gate.actionLabel}</Link></Button>
+          <Button asChild variant="outline" className="mt-3 h-12 w-full rounded-xl"><Link to="/dashboard">Return to Dashboard</Link></Button>
         </section>
       </AppPage>
     );
@@ -332,153 +296,42 @@ function WithdrawPage() {
     <AppPage
       title="Withdraw Funds"
       subtitle={settings?.withdrawal_processing_time}
-      action={
-        <Link
-          to="/requests"
-          className="shrink-0 rounded-full border border-gold/40 px-3 py-1.5 text-[10px] font-semibold text-gold transition active:scale-95"
-        >
-          Track requests
-        </Link>
-      }
+      action={<Link to="/requests" className="shrink-0 rounded-full border border-gold/40 px-3 py-1.5 text-[10px] font-semibold text-gold transition active:scale-95">Track requests</Link>}
     >
       <section className="animate-fade-up rounded-2xl border border-gold/30 bg-gradient-to-br from-navy via-card to-navy-deep p-4">
         <p className="text-[10px] tracking-[0.25em] text-muted-foreground">AVAILABLE BALANCE</p>
         <p className="mt-1 font-display text-2xl font-extrabold">{naira(balance)}</p>
-        <p className="mt-1 text-[11px] text-muted-foreground">{naira(pending)} pending payout</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{naira(pendingBalance)} pending payout</p>
       </section>
 
-      {settings?.withdrawals_enabled === false && (
-        <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-center text-xs font-semibold text-destructive">
-          Withdrawals are temporarily paused.
-        </div>
-      )}
-
-      {lastSubmitted && (
-        <RequestProcessingCard
-          kind="withdrawal"
-          status={lastSubmitted.status}
-          amount={lastSubmitted.amount}
-          reference={lastSubmitted.reference}
-          detail="Your withdrawal request has been received and is awaiting review."
-        />
-      )}
+      {settings?.withdrawals_enabled === false && <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-center text-xs font-semibold text-destructive">Withdrawals are temporarily paused.</div>}
 
       <section className="animate-fade-up space-y-3 rounded-2xl border border-border bg-card p-4">
-        <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
-          <Landmark className="h-3 w-3" /> PAYOUT DETAILS
-        </p>
-
-        {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-[11px] leading-relaxed text-destructive">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-muted-foreground"><Landmark className="h-3 w-3" /> PAYOUT DETAILS</p>
+        {error && <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-[11px] leading-relaxed text-destructive" role="alert"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
         <label className="block">
           <span className="text-[11px] font-medium text-muted-foreground">Amount (₦)</span>
-          <input
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value);
-              if (error) setError(null);
-            }}
-            placeholder={`Min ${naira(effectiveMin)}${effectiveMax > 0 ? ` · Max ${naira(effectiveMax)}` : ""}`}
-            className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-gold/60"
-          />
+          <input inputMode="decimal" value={amount} onChange={(event) => { setAmount(event.target.value); setError(null); }} placeholder={`Min ${naira(effectiveMin)}${effectiveMax > 0 ? ` · Max ${naira(effectiveMax)}` : ""}`} className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-gold/60" />
         </label>
         <label className="block">
           <span className="text-[11px] font-medium text-muted-foreground">Bank</span>
-          <div className="mt-1">
-            <SearchableSelect
-              id="withdraw-bank"
-              value={bankName}
-              onValueChange={(v) => {
-                setBankName(v);
-                if (error) setError(null);
-              }}
-              options={(settings?.supported_banks ?? []).map((b) => ({ value: b, label: b }))}
-              placeholder="Select your bank"
-              searchPlaceholder="Search banks…"
-            />
-          </div>
+          <div className="mt-1"><SearchableSelect id="withdraw-bank" value={bankName} onValueChange={(value) => { setBankName(value); setError(null); }} options={(settings?.supported_banks ?? []).map((bank) => ({ value: bank, label: bank }))} placeholder="Select your bank" searchPlaceholder="Search banks…" /></div>
         </label>
-        <label className="block">
-          <span className="text-[11px] font-medium text-muted-foreground">Account number</span>
-          <input
-            inputMode="numeric"
-            value={accountNumber}
-            onChange={(e) => {
-              setAccountNumber(e.target.value);
-              if (error) setError(null);
-            }}
-            className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-xs outline-none transition focus:border-gold/60"
-          />
-        </label>
-        <label className="block">
-          <span className="text-[11px] font-medium text-muted-foreground">Account name</span>
-          <input
-            value={accountName}
-            onChange={(e) => {
-              setAccountName(e.target.value);
-              if (error) setError(null);
-            }}
-            className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-xs outline-none transition focus:border-gold/60"
-          />
-        </label>
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
-          Minimum: {naira(effectiveMin)}{effectiveMax > 0 ? ` · Maximum per request: ${naira(effectiveMax)}` : ""}. {settings?.withdrawal_instructions}
-        </p>
-        <button
-          type="button"
-          disabled={busy || !amount}
-          onClick={submit}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient py-3 text-xs font-bold text-gold-foreground transition active:scale-[0.98] disabled:opacity-60"
-        >
-          {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Request withdrawal
-        </button>
+        <label className="block"><span className="text-[11px] font-medium text-muted-foreground">Account number</span><input inputMode="numeric" value={accountNumber} onChange={(event) => { setAccountNumber(event.target.value); setError(null); }} className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-xs outline-none transition focus:border-gold/60" /></label>
+        <label className="block"><span className="text-[11px] font-medium text-muted-foreground">Account name</span><input value={accountName} onChange={(event) => { setAccountName(event.target.value); setError(null); }} className="mt-1 w-full rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-xs outline-none transition focus:border-gold/60" /></label>
+        <p className="text-[10px] leading-relaxed text-muted-foreground">Minimum: {naira(effectiveMin)}{effectiveMax > 0 ? ` · Maximum per request: ${naira(effectiveMax)}` : ""}. {settings?.withdrawal_instructions}</p>
+        <button type="button" disabled={busy || !amount || settings?.withdrawals_enabled === false} onClick={() => void submit()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient py-3 text-xs font-bold text-gold-foreground transition active:scale-[0.98] disabled:opacity-60">{busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Request withdrawal</button>
       </section>
 
       <section>
-        <h2 className="text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
-          WITHDRAWAL HISTORY
-        </h2>
+        <h2 className="text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">WITHDRAWAL HISTORY</h2>
         <div className="mt-3 rounded-2xl border border-border bg-card">
-          {history.length === 0 && (
-            <p className="p-6 text-center text-xs text-muted-foreground">No withdrawals yet.</p>
-          )}
-          {history.map((w, i) => (
-            <div key={w.id} className={cn("flex items-center gap-3 p-3.5", i > 0 && "border-t border-border")}>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold">{w.reference}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {w.bank_name} · {dateTime(w.created_at)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-bold">{naira(w.amount)}</p>
-                <p
-                  className={cn(
-                    "text-[10px] capitalize",
-                    w.status === "completed" || w.status === "approved"
-                      ? "text-success"
-                      : w.status === "rejected"
-                        ? "text-destructive"
-                        : "text-gold",
-                  )}
-                >
-                  {w.status}
-                </p>
-                {(w.status === "rejected" || w.status === "approved" || w.status === "completed") && (
-                  <button
-                    type="button"
-                    onClick={() => navigate({ to: "/withdrawal-processing", search: { id: w.id } })}
-                    className="mt-1 text-[10px] font-semibold text-gold underline-offset-2 hover:underline"
-                  >
-                    View result
-                  </button>
-                )}
+          {history.length === 0 && <p className="p-6 text-center text-xs text-muted-foreground">No withdrawals yet.</p>}
+          {history.map((withdrawal, index) => (
+            <div key={withdrawal.id} className={cn("flex items-center gap-3 p-3.5", index > 0 && "border-t border-border")}>
+              <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{withdrawal.reference || "Withdrawal request"}</p><p className="text-[10px] text-muted-foreground">{withdrawal.bank_name} · {dateTime(withdrawal.created_at)}</p></div>
+              <div className="text-right"><p className="text-xs font-bold">{naira(withdrawal.amount)}</p><p className={cn("text-[10px] capitalize", withdrawal.status === "completed" || withdrawal.status === "approved" ? "text-success" : withdrawal.status === "rejected" ? "text-destructive" : "text-gold")}>{withdrawal.status}</p>
+                {(withdrawal.status === "rejected" || withdrawal.status === "approved" || withdrawal.status === "completed") && <button type="button" onClick={() => void navigate({ to: "/withdrawal-processing", search: { id: withdrawal.id } })} className="mt-1 text-[10px] font-semibold text-gold underline-offset-2 hover:underline">View result</button>}
               </div>
             </div>
           ))}
