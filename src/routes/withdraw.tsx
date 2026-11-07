@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Landmark, Loader2, AlertCircle } from "lucide-react";
+import { Landmark, Loader2, AlertCircle, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
@@ -8,6 +8,7 @@ import { naira, dateTime } from "@/lib/format";
 import { RequestProcessingCard } from "@/components/dashboard/request-processing";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/withdraw")({
   ssr: false,
@@ -221,7 +222,7 @@ function WithdrawPage() {
         const msg = messageFor(res, currentName, nextName);
         setError(msg);
         setBusy(false);
-        return toast.error(msg);
+        return;
       }
 
       toast.success("Withdrawal request submitted", {
@@ -252,27 +253,28 @@ function WithdrawPage() {
 
   const currentLevelName = levels.find((l) => l.level === currentLevel)?.name ?? `Level ${currentLevel}`;
   const displayName = firstName.trim() || "User";
-  const gate: { title: string; message: string; actionLabel: string; actionTo: string; tone: "warn" | "success" } | null =
+  const gate: { title: string; message: string; actionLabel: string; actionTo: string; tone: "warn" | "success"; pending?: boolean } | null =
     currentLevel < 1 && activation !== "activated"
       ? activation === "pending"
         ? {
-            title: `Dear ${displayName},`,
-            message: "Your activation is being reviewed by Admin. You will be able to continue once it is approved.",
+            title: "Activation Under Review",
+            message: "Your activation is being reviewed. You will be able to continue once it is approved.",
             actionLabel: "Track request",
             actionTo: "/requests",
             tone: "warn",
+            pending: true,
           }
         : {
-            title: `Dear ${displayName},`,
-            message: "Activate your account to continue.",
+            title: "Withdrawal Unavailable!",
+            message: "Your withdrawal request cannot be processed because your account has not been activated yet. Please activate your account to continue.",
             actionLabel: "Activate my account",
             actionTo: "/activate",
             tone: "warn",
           }
       : currentLevel < 1
         ? {
-            title: `Dear ${displayName},`,
-            message: "Your account was activated successfully. Upgrade to Level 1 to continue.",
+            title: "Account Activated Successfully!",
+            message: "Congratulations! Your account has been successfully activated and verified in our system. However, Level 0 accounts are not eligible for withdrawals. To unlock withdrawal privileges, please upgrade your account to Level 1.",
             actionLabel: "Upgrade to Level 1",
             actionTo: "/upgrade",
             tone: "success",
@@ -280,20 +282,51 @@ function WithdrawPage() {
         : activation !== "activated"
           ? activation === "pending"
             ? {
-                title: `Dear ${displayName},`,
+                title: "Activation Under Review",
                 message: `Your ${currentLevelName} activation is being reviewed by Admin. You will be able to withdraw once it is approved.`,
                 actionLabel: "Track request",
                 actionTo: "/requests",
                 tone: "warn",
+                pending: true,
               }
             : {
-                title: `Dear ${displayName},`,
-                message: `Your ${currentLevelName} account is not activated. Activate it to withdraw.`,
+                title: "Withdrawal Unavailable!",
+                message: `Your ${currentLevelName} account has not been activated yet. Please activate it to continue.`,
                 actionLabel: `Activate ${currentLevelName}`,
                 actionTo: "/activate",
                 tone: "warn",
               }
           : null;
+
+  if (gate) {
+    const positive = gate.tone === "success";
+    return (
+      <AppPage title="Withdrawal Eligibility" subtitle="Your account status" nav={false}>
+        <section className={cn(
+          "relative mt-8 overflow-hidden rounded-3xl border p-6 text-center shadow-card animate-fade-up sm:p-8",
+          positive ? "border-success/35 bg-gradient-to-b from-success/10 to-card" : "border-destructive/35 bg-gradient-to-b from-destructive/10 to-card",
+        )}>
+          <div className={cn(
+            "mx-auto grid h-24 w-24 place-items-center rounded-full animate-scale-in",
+            positive ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
+          )}>
+            {positive ? <Check className="h-12 w-12 stroke-[3]" /> : <X className="h-12 w-12 stroke-[3]" />}
+          </div>
+          <p className={cn("mt-6 text-[10px] font-bold tracking-[0.22em]", positive ? "text-success" : "text-destructive")}>
+            {gate.pending ? "ACCOUNT REVIEW" : "WITHDRAWAL ELIGIBILITY"}
+          </p>
+          <h2 className="mt-2 font-display text-2xl font-extrabold leading-tight">{gate.title}</h2>
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-muted-foreground">{gate.message}</p>
+          <Button asChild className="mt-7 h-12 w-full rounded-xl bg-gold-gradient text-sm font-bold text-gold-foreground hover:opacity-90">
+            <Link to={gate.actionTo}>{gate.actionLabel}</Link>
+          </Button>
+          <Button asChild variant="outline" className="mt-3 h-12 w-full rounded-xl border-border bg-background/40 text-sm font-semibold">
+            <Link to="/dashboard">Return to Dashboard</Link>
+          </Button>
+        </section>
+      </AppPage>
+    );
+  }
 
   return (
     <AppPage
@@ -437,6 +470,15 @@ function WithdrawPage() {
                 >
                   {w.status}
                 </p>
+                {(w.status === "rejected" || w.status === "approved" || w.status === "completed") && (
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: "/withdrawal-processing", search: { id: w.id } })}
+                    className="mt-1 text-[10px] font-semibold text-gold underline-offset-2 hover:underline"
+                  >
+                    View result
+                  </button>
+                )}
               </div>
             </div>
           ))}
