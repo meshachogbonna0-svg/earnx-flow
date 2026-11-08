@@ -81,7 +81,7 @@ function WithdrawRouteError({ error, reset }: ErrorComponentProps) {
       <section className="rounded-3xl border border-destructive/35 bg-destructive/10 p-5 text-center" role="alert">
         <AlertCircle className="mx-auto h-9 w-9 text-destructive" />
         <h2 className="mt-3 font-display text-lg font-bold">Withdrawal page couldn’t load</h2>
-        <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">{error.message || "An unexpected error occurred."}</p>
+        <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">{error instanceof Error ? error.message : "An unexpected error occurred."}</p>
         <Button type="button" onClick={reset} className="mt-5 h-11 w-full rounded-xl bg-gold-gradient text-gold-foreground">Try again</Button>
         <Button asChild variant="outline" className="mt-3 h-11 w-full rounded-xl"><Link to="/dashboard">Return to Dashboard</Link></Button>
       </section>
@@ -182,7 +182,7 @@ function WithdrawPage() {
         return;
       }
       toast.success("Withdrawal request submitted", { description: "Your request is now being processed by Admin." });
-      await navigate({ to: "/withdrawal-processing", search: result.id ? { id: String(result.id) } : undefined, replace: true });
+      await navigate({ to: "/withdrawal-processing", search: { id: String(result.id ?? "") }, replace: true });
     } catch (submitError) {
       console.error("Withdrawal request failed", submitError);
       setError(submitError instanceof Error ? submitError.message : "Withdrawal request failed. Please try again.");

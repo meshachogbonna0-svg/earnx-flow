@@ -152,6 +152,7 @@ type SettingsRow = Record<string, unknown> & { id?: boolean };
 function AdminPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState(false);
   const [section, setSection] = useState<Section>("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -165,40 +166,47 @@ function AdminPage() {
   const [userFilter, setUserFilter] = useState<"all" | "activated" | "inactive" | "suspended">("all");
 
   const load = async () => {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      navigate({ to: "/login", replace: true });
-      return;
-    }
-    const { data: adminOk, error: adminError } = await supabase.rpc("ensure_admin_role");
-    console.log("[Admin] Logged-in user:", auth.user.email, auth.user.id);
-    console.log("[Admin] RPC result:", adminOk, adminError);
-    if (adminError) {
-      throw new Error(`Admin authorization error: ${adminError.message}`);
-    }
-    const isAdmin = adminOk === true;
-    setAllowed(isAdmin);
-    if (!isAdmin) {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!auth.user) {
+        await navigate({ to: "/login", replace: true });
+        return;
+      }
+      const { data: adminOk, error: adminError } = await supabase.rpc("ensure_admin_role");
+      if (adminError) throw new Error(`Admin authorization error: ${adminError.message}`);
+      const isAdmin = adminOk === true;
+      setAllowed(isAdmin);
+      if (!isAdmin) return;
+      const [{ data: u, error: usersError }, { data: s, error: settingsError }, { data: f, error: fraudError }, statsRes, txnRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, username, email, first_name, balance, level, activation, account_status, total_taps, created_at, last_login_at, updated_at")
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase.from("platform_settings").select("*").maybeSingle(),
+        supabase.from("fraud_reports").select("*").order("created_at", { ascending: false }).limit(100),
+        rpc<Record<string, number>>("admin_stats"),
+        rpc<{ rows: TxnRow[] }>("admin_requests", { _kind: "transaction" }),
+      ]);
+      if (usersError) throw usersError;
+      if (settingsError) throw settingsError;
+      if (fraudError) throw fraudError;
+      if (statsRes.error) throw statsRes.error;
+      if (txnRes.error) throw txnRes.error;
+      setUsers((u as UserRow[]) ?? []);
+      setSettings(s as SettingsRow);
+      setFraud((f as FraudRow[]) ?? []);
+      setStats(statsRes.data ?? {});
+      setTxns(txnRes.data?.rows ?? []);
+    } catch (error) {
+      console.error("Could not load admin panel", error);
+      setLoadError(error instanceof Error ? error.message : "Admin data could not be loaded. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    const [{ data: u }, { data: s }, { data: f }, statsRes, txnRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, username, email, first_name, balance, level, activation, account_status, total_taps, created_at, last_login_at, updated_at")
-        .order("created_at", { ascending: false })
-        .limit(500),
-      supabase.from("platform_settings").select("*").maybeSingle(),
-      supabase.from("fraud_reports").select("*").order("created_at", { ascending: false }).limit(100),
-      rpc<Record<string, number>>("admin_stats"),
-      rpc<{ rows: TxnRow[] }>("admin_requests", { _kind: "transaction" }),
-    ]);
-    setUsers((u as UserRow[]) ?? []);
-    setSettings(s as SettingsRow);
-    setFraud((f as FraudRow[]) ?? []);
-    setStats(statsRes.data ?? {});
-    setTxns(txnRes.data?.rows ?? []);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -281,6 +289,18 @@ function AdminPage() {
   };
 
   if (loading) return <PageLoader />;
+
+  if (loadError) {
+    return (
+      <AppPage nav={false} title="Admin Panel" subtitle="Unable to load admin data">
+        <section className="rounded-2xl border border-destructive/40 bg-destructive/10 p-6 text-center" role="alert">
+          <p className="text-sm font-semibold">The Admin Panel couldn’t load.</p>
+          <p className="mt-2 break-words text-xs leading-5 text-muted-foreground">{loadError}</p>
+          <button type="button" onClick={() => void load()} className="mt-5 min-h-11 w-full rounded-xl bg-gold-gradient px-4 text-sm font-bold text-gold-foreground">Try again</button>
+        </section>
+      </AppPage>
+    );
+  }
 
   if (!allowed) {
     return (
