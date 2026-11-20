@@ -101,6 +101,9 @@ function WithdrawPage() {
   const [levels, setLevels] = useState<LevelRow[]>([]);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [activation, setActivation] = useState("not_activated");
+  const [firstName, setFirstName] = useState("");
+  const [otherNames, setOtherNames] = useState("");
+  const [eligibilityIssue, setEligibilityIssue] = useState<{ reason: "not_activated" | "level_zero"; message: string | null } | null>(null);
   const [effectiveMin, setEffectiveMin] = useState(5000);
   const [effectiveMax, setEffectiveMax] = useState(0);
   const [amount, setAmount] = useState("");
@@ -122,7 +125,7 @@ function WithdrawPage() {
       const userId = authResult.data.user.id;
       const [profileResult, settingsResult, withdrawalsResult, levelsResult] = await withTimeout(
         Promise.all([
-          supabase.from("profiles").select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level, activation").eq("id", userId).maybeSingle(),
+          supabase.from("profiles").select("balance, pending_balance, bank_name, bank_account_number, bank_account_name, level, activation, first_name, other_names").eq("id", userId).maybeSingle(),
           supabase.from("platform_settings").select("*").maybeSingle(),
           supabase.from("withdrawals").select("id, reference, amount, status, bank_name, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
           supabase.from("levels").select("level, name, min_withdrawal, max_withdrawal").order("level"),
@@ -144,6 +147,8 @@ function WithdrawPage() {
 
       setCurrentLevel(level);
       setActivation(profile.activation ?? "not_activated");
+      setFirstName(profile.first_name ?? "");
+      setOtherNames(profile.other_names ?? "");
       setBalance(Number(profile.balance ?? 0));
       setPendingBalance(Number(profile.pending_balance ?? 0));
       setBankName(profile.bank_name ?? "");
@@ -178,6 +183,10 @@ function WithdrawPage() {
       const currentName = levels.find((row) => row.level === currentLevel)?.name ?? `Level ${currentLevel}`;
       const nextName = levels.find((row) => row.level === currentLevel + 1)?.name ?? null;
       if (!result.ok) {
+        if (result.reason === "not_activated" || result.reason === "level_zero") {
+          setEligibilityIssue({ reason: result.reason, message: result.message ?? null });
+          return;
+        }
         setError(messageFor(result, currentName, nextName));
         return;
       }
@@ -207,16 +216,21 @@ function WithdrawPage() {
   }
 
   const currentLevelName = levels.find((row) => row.level === currentLevel)?.name ?? `Level ${currentLevel}`;
-  const gate = currentLevel < 1
+  const fullName = [firstName, otherNames].filter(Boolean).join(" ") || "EarnX user";
+  const gate = eligibilityIssue
+    ? eligibilityIssue.reason === "level_zero" && activation === "activated"
+      ? { title: "Account Activated Successfully!", message: eligibilityIssue.message ?? "Level 0 accounts are not eligible for withdrawals. Upgrade to Level 1 and activate Level 1 before withdrawing.", actionLabel: "Upgrade to Level 1", actionTo: "/upgrade" as const, success: true }
+      : { title: "Activation Required", message: eligibilityIssue.message ?? `Please activate your account so it can be verified in our system before you withdraw.`, actionLabel: "Activate Account", actionTo: "/activate" as const, success: false }
+    : currentLevel < 1
     ? activation === "activated"
       ? { title: "Account Activated Successfully!", message: "Congratulations! Your account has been successfully activated and verified in our system. However, Level 0 accounts are not eligible for withdrawals. To unlock withdrawal privileges, please upgrade your account to Level 1.", actionLabel: "Upgrade to Level 1", actionTo: "/upgrade" as const, success: true }
       : activation === "pending"
         ? { title: "Activation Under Review", message: "Your activation is being reviewed. You will be able to continue once it is approved.", actionLabel: "Track request", actionTo: "/requests" as const, success: false }
-        : { title: "Withdrawal Unavailable!", message: "Your withdrawal request cannot be processed because your account has not been activated yet. Please activate your account to continue.", actionLabel: "Activate Account", actionTo: "/activate" as const, success: false }
+        : { title: "Withdrawal Unavailable!", message: "Please activate your account so it can be verified in our system before you withdraw.", actionLabel: "Activate Account", actionTo: "/activate" as const, success: false }
     : activation !== "activated"
       ? activation === "pending"
         ? { title: "Activation Under Review", message: `Your ${currentLevelName} activation is being reviewed by Admin. You will be able to withdraw once it is approved.`, actionLabel: "Track request", actionTo: "/requests" as const, success: false }
-        : { title: "Withdrawal Unavailable!", message: `Your ${currentLevelName} account has not been activated yet. Please activate it to continue.`, actionLabel: `Activate ${currentLevelName}`, actionTo: "/activate" as const, success: false }
+        : { title: "Withdrawal Unavailable!", message: `Please activate your ${currentLevelName} account so it can be verified in our system before you withdraw.`, actionLabel: `Activate ${currentLevelName}`, actionTo: "/activate" as const, success: false }
       : null;
 
   if (gate) {
@@ -226,6 +240,7 @@ function WithdrawPage() {
           <div className={cn("mx-auto grid h-24 w-24 place-items-center rounded-full animate-scale-in", gate.success ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>{gate.success ? <Check className="h-12 w-12 stroke-[3]" /> : <X className="h-12 w-12 stroke-[3]" />}</div>
           <p className={cn("mt-5 text-[10px] font-bold tracking-[0.22em]", gate.success ? "text-success" : "text-destructive")}>WITHDRAWAL ELIGIBILITY</p>
           <h2 className="mt-2 font-display text-2xl font-extrabold leading-tight">{gate.title}</h2>
+          {!gate.success && <p className="mt-3 text-sm font-semibold">Dear {fullName},</p>}
           <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-muted-foreground">{gate.message}</p>
           <Button asChild className="mt-7 h-12 w-full rounded-xl bg-gold-gradient text-sm font-bold text-gold-foreground"><Link to={gate.actionTo}>{gate.actionLabel}</Link></Button>
           <Button asChild variant="outline" className="mt-3 h-12 w-full rounded-xl"><Link to="/dashboard">Return to Dashboard</Link></Button>

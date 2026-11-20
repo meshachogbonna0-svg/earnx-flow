@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { BatteryCharging, Check, Loader2, ShieldCheck, TrendingUp, Zap } from "lucide-react";
+import { AlertCircle, BatteryCharging, Check, Loader2, ShieldCheck, TrendingUp, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppPage, PageLoader } from "@/components/dashboard/app-page";
@@ -16,6 +16,7 @@ import {
 import { ReceiptUpload } from "@/components/security/receipt-upload";
 import { naira } from "@/lib/format";
 import { RequestProcessingCard } from "@/components/dashboard/request-processing";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/upgrade_/$level")({
   ssr: false,
@@ -49,7 +50,7 @@ type Level = {
 };
 
 type Settings = PaymentSettings & { withdrawal_instructions?: string };
-type UpgradeResult = { ok?: boolean; reason?: string; pending_level?: number; next_level?: number };
+type UpgradeResult = { ok?: boolean; reason?: string; message?: string; pending_level?: number; next_level?: number };
 
 const messageFor = (res: UpgradeResult) => {
   switch (res.reason) {
@@ -72,6 +73,10 @@ function UpgradeLevelPage() {
   const [current, setCurrent] = useState<Level | null>(null);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [balance, setBalance] = useState(0);
+  const [activation, setActivation] = useState("not_activated");
+  const [firstName, setFirstName] = useState("");
+  const [otherNames, setOtherNames] = useState("");
+  const [eligibilityMessage, setEligibilityMessage] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -83,22 +88,26 @@ function UpgradeLevelPage() {
   const [latestNote, setLatestNote] = useState<string | null>(null);
 
   useEffect(() => {
+    setEligibilityMessage(null);
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) { navigate({ to: "/login", replace: true }); return; }
       const [{ data: levels }, { data: p }, { data: s }, { data: reqs }] = await Promise.all([
         supabase.from("levels").select("*").order("level"),
-        supabase.from("profiles").select("level, balance, first_name, other_names").eq("id", auth.user.id).maybeSingle(),
+        supabase.from("profiles").select("level, balance, activation, first_name, other_names").eq("id", auth.user.id).maybeSingle(),
         supabase.from("platform_settings").select("bank_name, account_name, account_number, security_notice, anti_scam_reminder").maybeSingle(),
         supabase.from("upgrade_requests" as never).select("id, status, admin_note").eq("user_id", auth.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
       const all = (levels as Level[]) ?? [];
-      const prof = p as { level: number; balance: number; first_name: string; other_names: string } | null;
+      const prof = p as { level: number; balance: number; activation?: string; first_name: string | null; other_names: string | null } | null;
       const myLevel = prof?.level ?? 0;
       setPlan(all.find((item) => item.level === target) ?? null);
       setCurrent(all.find((item) => item.level === myLevel) ?? null);
       setCurrentLevel(myLevel);
       setBalance(prof?.balance ?? 0);
+      setActivation(prof?.activation ?? "not_activated");
+      setFirstName(prof?.first_name ?? "");
+      setOtherNames(prof?.other_names ?? "");
       setPayerName(`${prof?.first_name ?? ""} ${prof?.other_names ?? ""}`.trim());
       setSettings((s as Settings) ?? null);
       const latest = reqs as { status: string; admin_note: string | null } | null;
@@ -111,12 +120,25 @@ function UpgradeLevelPage() {
 
   const upgrade = async () => {
     if (busy) return;
+    if (activation !== "activated") {
+      setEligibilityMessage(`Please activate your ${current?.name ?? `Level ${currentLevel}`} account so it can be verified in our system before you upgrade.`);
+      return;
+    }
     setBusy(true);
     const call = supabase.rpc.bind(supabase) as unknown as (name: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
     const { data, error } = await call("submit_upgrade_request", { _level: target, _payer_name: payerName, _reference: reference, _proof_url: proofUrl });
     const res = (data ?? {}) as UpgradeResult;
     if (error) { setBusy(false); return toast.error("Upgrade request failed", { description: "Please check your connection and try again." }); }
-    if (!res.ok) { setBusy(false); if (res.reason === "pending_exists") setPending(true); return toast.error(messageFor(res)); }
+    if (!res.ok) {
+      setBusy(false);
+      if (res.reason === "not_activated") {
+        setActivation("not_activated");
+        setEligibilityMessage(res.message ?? `Please activate your ${current?.name ?? `Level ${currentLevel}`} account so it can be verified in our system before you upgrade.`);
+        return;
+      }
+      if (res.reason === "pending_exists") setPending(true);
+      return toast.error(messageFor(res));
+    }
     setPending(true);
     toast.success("Upgrade request submitted", { description: "Your receipt is now under Admin review." });
     navigate({ to: "/upgrade-processing", search: { level: String(target) }, replace: true });
@@ -126,6 +148,32 @@ function UpgradeLevelPage() {
   if (!plan) return <AppPage title="Level Upgrade" subtitle="Plan not found"><p className="rounded-2xl border border-border bg-card p-6 text-center text-xs text-muted-foreground">This upgrade level isn't available. Go back and pick another plan.</p></AppPage>;
   const owned = plan.level <= currentLevel;
   const outOfOrder = !owned && plan.level !== currentLevel + 1;
+  const fullName = [firstName, otherNames].filter(Boolean).join(" ") || "EarnX user";
+
+  if (eligibilityMessage || (!owned && !outOfOrder && !pending && activation !== "activated")) {
+    const message = eligibilityMessage ?? (activation === "pending"
+      ? `Your ${current?.name ?? `Level ${currentLevel}`} activation is still being reviewed. Visit the activation page to check your request or submit an updated receipt.`
+      : `Please activate your ${current?.name ?? `Level ${currentLevel}`} account so it can be verified in our system before you upgrade.`);
+    return (
+      <AppPage title="Activation Required" subtitle={`Before upgrading to ${plan.name}`} nav={false}>
+        <section className="animate-fade-up rounded-3xl border border-destructive/35 bg-gradient-to-b from-destructive/10 to-card p-5 text-center shadow-card sm:p-8">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-destructive/15 text-destructive animate-scale-in">
+            <AlertCircle className="h-10 w-10" />
+          </div>
+          <p className="mt-5 text-[10px] font-bold tracking-[0.22em] text-destructive">ACCOUNT VERIFICATION</p>
+          <h2 className="mt-2 font-display text-2xl font-extrabold leading-tight">Activate your account to continue</h2>
+          <p className="mt-4 text-sm font-semibold">Dear {fullName},</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
+          <Button asChild className="mt-7 h-12 w-full rounded-xl bg-gold-gradient text-sm font-bold text-gold-foreground">
+            <Link to="/activate">Activate Account</Link>
+          </Button>
+          <Button asChild variant="outline" className="mt-3 h-12 w-full rounded-xl">
+            <Link to="/dashboard">Return to Dashboard</Link>
+          </Button>
+        </section>
+      </AppPage>
+    );
+  }
 
   return (
     <AppPage title={`${plan.name} Upgrade`} subtitle={`Level ${plan.level} · Balance ${naira(balance)}`}>
