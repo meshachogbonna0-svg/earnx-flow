@@ -215,23 +215,12 @@ function WithdrawPage() {
     );
   }
 
-  const currentLevelName = levels.find((row) => row.level === currentLevel)?.name ?? `Level ${currentLevel}`;
   const fullName = [firstName, otherNames].filter(Boolean).join(" ") || "EarnX user";
   const gate = eligibilityIssue
     ? eligibilityIssue.reason === "level_zero" && activation === "activated"
       ? { title: "Account Activated Successfully!", message: eligibilityIssue.message ?? "Level 0 accounts are not eligible for withdrawals. Upgrade to Level 1 and activate Level 1 before withdrawing.", actionLabel: "Upgrade to Level 1", actionTo: "/upgrade" as const, success: true }
       : { title: "Activation Required", message: eligibilityIssue.message ?? `Please activate your account so it can be verified in our system before you withdraw.`, actionLabel: "Activate Account", actionTo: "/activate" as const, success: false }
-    : currentLevel < 1
-    ? activation === "activated"
-      ? { title: "Account Activated Successfully!", message: "Congratulations! Your account has been successfully activated and verified in our system. However, Level 0 accounts are not eligible for withdrawals. To unlock withdrawal privileges, please upgrade your account to Level 1.", actionLabel: "Upgrade to Level 1", actionTo: "/upgrade" as const, success: true }
-      : activation === "pending"
-        ? { title: "Activation Under Review", message: "Your activation is being reviewed. You will be able to continue once it is approved.", actionLabel: "Track request", actionTo: "/requests" as const, success: false }
-        : { title: "Withdrawal Unavailable!", message: "Please activate your account so it can be verified in our system before you withdraw.", actionLabel: "Activate Account", actionTo: "/activate" as const, success: false }
-    : activation !== "activated"
-      ? activation === "pending"
-        ? { title: "Activation Under Review", message: `Your ${currentLevelName} activation is being reviewed by Admin. You will be able to withdraw once it is approved.`, actionLabel: "Track request", actionTo: "/requests" as const, success: false }
-        : { title: "Withdrawal Unavailable!", message: `Please activate your ${currentLevelName} account so it can be verified in our system before you withdraw.`, actionLabel: `Activate ${currentLevelName}`, actionTo: "/activate" as const, success: false }
-      : null;
+    : null;
 
   if (gate) {
     return (
